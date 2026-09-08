@@ -29,12 +29,15 @@
   "use strict";
 
   var ROLES = [
-    "design system practitioner",
-    "product designer",
+    "design systems steward",
     "design engineer",
-    "prompt writer",
-    "web designer",
-    "ai nerd",
+    "design engineer“,
+    "design enablement lead”,
+    "token architect“,
+    "workflow and tooling builder“,
+    "applied AI practitioner“,
+    "playbook author“ , 
+    "certified Webflow partner“,
   ];
 
   function initTextCycle() {
