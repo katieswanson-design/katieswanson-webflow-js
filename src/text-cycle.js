@@ -36,7 +36,7 @@
     "token architect“,
     "workflow and tooling builder“,
     "applied AI practitioner“,
-    "playbook author“ , 
+    "playbook author“, 
     "certified Webflow partner“,
   ];
 
