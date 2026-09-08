@@ -67,19 +67,38 @@ div[data-work-strip].work-strip          ← the custom attribute is required
 
 ### Tunables
 
-Set as attributes on the `[data-work-strip]` element — no code change needed.
+Set as attributes on the `[data-work-strip]` element — no code change, just a
+republish. **All nine are already present on `/new-home` at the values below**,
+so they show up in the Designer's Settings panel ready to edit; you shouldn't
+need to add a row by hand. The JS carries the same numbers as fallbacks, so
+removing a row changes nothing.
 
-| Attribute | Default | Effect |
-|---|---|---|
-| `data-auto-speed` | `-0.5` | Idle drift in px/frame. Negative drifts left. |
-| `data-magnify-radius` | `300` | Distance from the cursor, in px, where cards start growing. |
-| `data-magnify-boost` | `0.25` | Fractional width increase at the cursor centre. `0.25` = +25%. |
-| `data-height-boost` | `0.22` | Fractional height increase at the centre. |
-| `data-info-radius` | `100` | Distance within which the name/meta fade in. |
-| `data-wheel-scope` | `strip` | `strip` hijacks the wheel only over the strip; `section` hijacks the whole parent section. |
-| `data-intro-impulse` | `-500` | One-off velocity kick on load. `0` disables it. |
-| `data-intro-delay` | `0.4` | Seconds to wait before the kick. |
-| `data-intro-fade` | `0.7` | Seconds the strip takes to fade in over the kick. |
+| Attribute | Default | Effect | Try |
+|---|---|---|---|
+| `data-auto-speed` | `-0.5` | Idle drift in px/frame. Negative drifts left, positive right. | `-0.3` calmer, `-1` livelier |
+| `data-magnify-radius` | `300` | Distance from the cursor, in px, where cards start growing. | `200` tighter, `450` broader |
+| `data-magnify-boost` | `0.25` | Fractional width increase at the cursor centre. `0.25` = +25%. | `0.15` subtle, `0.4` dramatic |
+| `data-height-boost` | `0.22` | Fractional height increase at the centre. | Keep just under the width value |
+| `data-info-radius` | `100` | Distance within which the name/meta fade in. | Raise if labels feel reluctant |
+| `data-wheel-scope` | `strip` | `strip` hijacks the wheel only over the strip; `section` hijacks the whole parent section. | `section` matches the reference |
+| `data-intro-impulse` | `-500` | One-off velocity kick on load. | `0` disables the intro |
+| `data-intro-delay` | `0.4` | Seconds before the kick fires. | Match your preloader if you add one |
+| `data-intro-fade` | `0.7` | Seconds the strip takes to fade in over the kick. | Higher hides more of the launch |
+
+#### Gotchas when editing them
+
+These are **strings in Webflow but numbers in JS**, and the parse falls back to
+the default on anything it can't read:
+
+- Write bare numbers. `0.5s`, `500ms` and `25%` all silently revert to the
+  default rather than erroring.
+- Blanking a value is not the same as deleting the row — an empty string also
+  falls back to the default. That makes it a confusing way to "turn something
+  off": for the intro, `data-intro-impulse="0"` is the real off switch.
+- `data-wheel-scope` is the one string value. Anything other than the exact word
+  `section` is treated as `strip`.
+- Values are read once at init. Changing an attribute needs a republish, not
+  just a save.
 
 The intro kick is a single velocity impulse, not a timeline — the same blend
 that returns the strip to idle drift decays it, so it whips out and glides to a
