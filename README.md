@@ -15,33 +15,37 @@ fly, so the source stays readable here and ships small.
 
 ## Adding a script to a Webflow page
 
-Paste into **Page settings → Before `</body>`** (or Site settings for
-sitewide). Pin the tag — never use `@main`, which jsDelivr caches for 12 hours
-and will make you think a change didn't deploy.
+Webflow's Data API **rejects raw `<script>` tags** in page/site custom code with
+an HTTP 406. Scripts have to go through *registered scripts*, which require an
+SRI integrity hash. jsDelivr warns against SRI on its generated `.min.js`, so we
+serve the plain `.js` — immutable at a pinned tag, so the hash is stable forever.
+Gzipped the size difference is negligible.
 
-```html
-<script src="https://cdn.prod.website-files.com/gsap/3.15.0/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/katieswanson-design/katieswanson-webflow-js@v1.0.0/src/work-strip.min.js"></script>
-```
+Never use `@main` in a URL: jsDelivr caches it for 12 hours and you will think a
+change didn't deploy.
+
+Currently registered on the site:
+
+| Script | Version | Applied to |
+|---|---|---|
+| `work strip marquee` | 1.0.0 | `/new-home`, footer |
+| `GSAP core` | 3.15.0 | `/new-home`, footer (must load first) |
 
 ## Releasing a change
 
 Edit the file in `src/`, then:
 
 ```bash
-./release.sh
-```
-
-That commits, bumps the patch tag, pushes, and prints the new CDN URLs to paste
-into Webflow. Pass a message to set the commit text:
-
-```bash
 ./release.sh "slow the idle drift"
 ```
 
-A tagged URL is cached permanently by jsDelivr, which is exactly what you want
-in production — the trade is that every change needs a new tag and a URL swap in
-Webflow.
+That commits, bumps the patch tag, pushes, waits for jsDelivr, verifies the CDN
+is serving exactly what you committed, and prints the new URL and SRI hash.
+
+Then update the registered script in Webflow with both the new `hosted_location`
+and the new `integrity_hash` — **both**, together. Updating the URL without the
+hash breaks the script silently: the browser blocks it on an integrity mismatch
+and the strip just doesn't run.
 
 ## work-strip
 
