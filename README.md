@@ -13,6 +13,26 @@ fly, so the source stays readable here and ships small.
 |---|---|---|
 | `src/work-strip.js` | Infinite drag/scroll marquee with cursor-proximity card magnification, image parallax, and proximity labels. Requires GSAP 3 core. | `/new-home` |
 | `src/text-cycle.js` | Cycles a list of words through an element, blurring out and back in between each. Requires GSAP 3 core. | `/new-home` hero |
+| `src/copy-email.js` | Copies an email to the clipboard and flips the button into a copied state. No dependencies. | Site-wide |
+| `src/copy-email.css` | Hover, focus and copied states for that button. | Site-wide |
+| `src/reset.css` | Global reset, base styles and Client-First-style utilities. | Site-wide |
+
+## Adding CSS to Webflow
+
+Unlike scripts, **`<link>` tags are accepted in freeform custom code** — so a
+stylesheet just goes into Site settings → Custom code → Head (or a page's head):
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/katieswanson-design/katieswanson-webflow-js@v1.0.7/src/reset.css">
+```
+
+No registering, no integrity hash. The tag can be written through the Webflow
+API, so a CSS release and its Webflow update can happen in one pass. Add `.min`
+before `.css` to have jsDelivr minify on the fly.
+
+Order matters: these load after Webflow's own stylesheet, so equal-specificity
+rules win over Designer styles — and that override won't show on the Designer
+canvas, only on the published site.
 
 ## Adding a script to a Webflow page
 
@@ -32,6 +52,7 @@ Currently registered on the site:
 | `work strip marquee` | 1.0.0 | `/new-home`, footer |
 | `GSAP core` | 3.15.0 | `/new-home`, footer (must load first) |
 | `text cycle` | 1.0.0 | `/new-home`, footer |
+| `copy email` | 1.0.0 | Site-wide, footer |
 
 ## Releasing a change
 
@@ -185,6 +206,21 @@ unparseable or empty value silently falls back to the default.
   mid-blur several steps along.
 - It initialises **every** `[data-text-cycle]` on the page, each with its own
   words and timings, not just the first one.
+
+## Migration from Slater
+
+Scripts and styles are moving out of Slater into this repo as the site is
+rebuilt. Slater is legacy — new work goes here.
+
+| Slater file | Status |
+|---|---|
+| `51358.js` (copy-email) | Migrated → `src/copy-email.js` |
+| `51359.css` (copy-email states) | Migrated → `src/copy-email.css` |
+| `51512.css` (reset + utilities) | Migrated → `src/reset.css` |
+| `51417.css` (Bunny video background) | **Still on Slater** — deferred |
+
+The Bunny stylesheet is still loaded from Slater in site-wide head code. Leave
+that `<link>` in place until that component is migrated or dropped.
 
 ## Credit
 

@@ -1,0 +1,46 @@
+/**
+ * copy-email.css — hover, focus, and copied states for the copy-email button.
+ *
+ * Migrated verbatim from Slater 51359.css (2026-09-08).
+ * Pairs with src/copy-email.js, which sets data-copy-button="copied".
+ *
+ * Markup contract:
+ *   button.copy-email-button[data-copy-email]
+ *     .copy-email-icon__wrap
+ *     .copy-email-text__wrap
+ *       span.copy-email-text__el[data-copy-email-element]  ← the address
+ *       span.copy-email-text__el                           ← "Click to copy email"
+ *       span.copy-email-text__el                           ← "Copied to clipboard!"
+ *
+ * The three text spans are stacked; each state slides the stack up by one to
+ * reveal the next, which is why the transforms step -100% then -200%.
+ */
+
+/* Hover */
+@media (hover: hover) {
+  .copy-email-button:hover .copy-email-icon__wrap {
+    background: rgba(34, 80, 46, 0.9);
+  }
+
+  .copy-email-button:hover .copy-email-text__el {
+    transform: translate(0px, -100%);
+  }
+}
+
+/* Keyboard focus */
+.copy-email-button:focus .copy-email-icon__wrap {
+  background: rgba(34, 80, 46, 0.9);
+}
+
+.copy-email-button:focus .copy-email-text__el {
+  transform: translate(0px, -100%);
+}
+
+/* 'Copied' state, once the button has been clicked */
+[data-copy-button="copied"] .copy-email-icon__wrap {
+  background: #0f8e2e !important;
+}
+
+[data-copy-button="copied"] .copy-email-text__el {
+  transform: translate(0px, -200%) !important;
+}

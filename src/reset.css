@@ -1,0 +1,279 @@
+/**
+ * reset.css — global reset, base styles, and utility classes.
+ *
+ * Migrated verbatim from Slater 51512.css (2026-09-08). Behaviour is unchanged
+ * except that the body scrollbar rule has been un-nested — see the note there.
+ *
+ * Loaded site-wide via a <link> in Site settings → Custom code → Head.
+ */
+
+/* ---------------------------------------------------------------- RESET ---
+ * 1. Prevent padding and border from affecting element width
+ * 2. Remove default margins and padding
+ * 3. Reset all borders
+ */
+*,
+::after,
+::before,
+::backdrop,
+::file-selector-button {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0 solid;
+}
+
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+.section-footer {
+  overflow: clip;
+}
+
+.fixed-footer {
+  transform: translate3d(0px, 0%, 0px) !important;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Was written with native CSS nesting (`&::-webkit-scrollbar`) inside the body
+ * rule above. Un-nested here: identical behaviour, but it also works in
+ * browsers predating native nesting support. */
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Selection styling */
+::selection {
+  color: white;
+  background-color: rgb(30 50 77 / 90%);
+}
+
+/* Focus state for keyboard navigation */
+*[tabindex]:focus-visible,
+input[type="file"]:focus-visible {
+  outline: 0.125rem solid #4d65ff;
+  outline-offset: 0.125rem;
+}
+
+/* ------------------------------------------------ TYPOGRAPHY & CONTENT --- */
+
+/* Inherit color for all children */
+.inherit-color * {
+  color: inherit;
+}
+
+/* Transition overlay */
+.wipe-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #0d1826;
+  transform: translateX(0%);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Reset link and form element inheritance */
+a,
+.w-input,
+.w-select,
+.w-tab-link,
+.w-nav-link,
+.w-dropdown-btn,
+.w-dropdown-toggle,
+.w-dropdown-link {
+  color: inherit;
+  text-decoration: inherit;
+  font-size: inherit;
+}
+
+/* Rich text margin resets */
+.w-richtext > :not(div):first-child,
+.w-richtext > div:first-child > :first-child {
+  margin-top: 0 !important;
+}
+
+.w-richtext > :last-child,
+.w-richtext ol li:last-child,
+.w-richtext ul li:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Text truncation */
+.text-style-2lines {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.text-style-3lines {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.truncate-width {
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --------------------------------------------------- LAYOUT UTILITIES --- */
+
+/* Container alignment lock */
+.container-medium,
+.container-small,
+.container-large {
+  margin-right: auto !important;
+  margin-left: auto !important;
+}
+
+/* Square aspect ratio */
+.div-square::after {
+  content: "";
+  display: block;
+  padding-bottom: 100%;
+}
+
+/* Display utilities */
+.display-inlineflex {
+  display: inline-flex;
+}
+
+/* Pointer event controls */
+.pointer-events-off {
+  pointer-events: none;
+}
+
+.pointer-events-on {
+  pointer-events: auto;
+}
+
+/* Webflow design mode helper */
+.wf-design-mode [data-horizontal-scroll-wrap] {
+  overflow: auto;
+}
+
+/* -------------------------------------------------- SPACING UTILITIES --- */
+
+.margin-0 {
+  margin: 0 !important;
+}
+
+.padding-0 {
+  padding: 0 !important;
+}
+
+.spacing-clean {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Directional margin resets */
+.margin-top {
+  margin-right: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+}
+
+.margin-right {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+}
+
+.margin-bottom {
+  margin-top: 0 !important;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+.margin-left {
+  margin-top: 0 !important;
+  margin-right: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.margin-horizontal {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.margin-vertical {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Directional padding resets */
+.padding-top {
+  padding-right: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 0 !important;
+}
+
+.padding-right {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 0 !important;
+}
+
+.padding-bottom {
+  padding-top: 0 !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+.padding-left {
+  padding-top: 0 !important;
+  padding-right: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.padding-horizontal {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.padding-vertical {
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* ----------------------------------------------- VISIBILITY UTILITIES --- */
+
+.hide {
+  display: none !important;
+}
+
+@media screen and (max-width: 991px) {
+  .hide-tablet {
+    display: none !important;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .hide-mobile-landscape {
+    display: none !important;
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}

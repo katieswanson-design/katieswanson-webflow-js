@@ -33,7 +33,7 @@ echo "Waiting for jsDelivr to pick up the new tag..."
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-for f in src/*.js; do
+for f in src/*.js src/*.css; do
   URL="https://cdn.jsdelivr.net/gh/${REPO}@${NEXT}/${f}"
   OUT="$TMP/$(basename "$f")"
   OK=""
