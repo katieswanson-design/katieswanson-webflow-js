@@ -12,6 +12,7 @@ fly, so the source stays readable here and ships small.
 | File | What it does | Where it's used |
 |---|---|---|
 | `src/work-strip.js` | Infinite drag/scroll marquee with cursor-proximity card magnification, image parallax, and proximity labels. Requires GSAP 3 core. | `/new-home` |
+| `src/text-cycle.js` | Cycles a list of words through an element, blurring out and back in between each. Requires GSAP 3 core. | `/new-home` hero |
 
 ## Adding a script to a Webflow page
 
@@ -30,6 +31,7 @@ Currently registered on the site:
 |---|---|---|
 | `work strip marquee` | 1.0.0 | `/new-home`, footer |
 | `GSAP core` | 3.15.0 | `/new-home`, footer (must load first) |
+| `text cycle` | 1.0.0 | `/new-home`, footer |
 
 ## Releasing a change
 
@@ -134,6 +136,55 @@ call `window.workStripImpulse(-500)` when the preloader finishes.
 - Clones are marked `aria-hidden` and `tabindex="-1"` so keyboard and screen
   reader users only meet each project once.
 - The whole thing no-ops under `prefers-reduced-motion: reduce`.
+
+## text-cycle
+
+Swaps a word for the next one on a timer, blurring out and back in. Used in the
+`/new-home` hero for the role line under the name.
+
+### Markup contract
+
+```
+<div data-text-cycle>design system practitioner</div>
+```
+
+Whatever text is in the element renders before the first swap and is what shows
+if the script never runs — so put a real word there, not a placeholder.
+
+### Words
+
+The built-in list lives in `ROLES` at the top of `src/text-cycle.js`. To override
+per element without a code release, put a comma-separated list in the attribute
+itself:
+
+```
+<div data-text-cycle="product designer, design engineer, ai nerd">
+```
+
+An attribute with fewer than two words is ignored and the element is left alone.
+
+### Tunables
+
+| Attribute | Default | Effect |
+|---|---|---|
+| `data-cycle-interval` | `2` | Seconds each word is held |
+| `data-cycle-out` | `0.2` | Seconds to blur out |
+| `data-cycle-in` | `0.4` | Seconds to blur back in |
+| `data-cycle-blur` | `8` | Pixels of blur at the midpoint |
+
+The same parsing rules as work-strip apply: bare numbers only, and an
+unparseable or empty value silently falls back to the default.
+
+### Notes
+
+- **Cycling is suppressed entirely under `prefers-reduced-motion: reduce`.**
+  Text that rewrites itself every two seconds is squarely what that setting is
+  asking us not to do; the element keeps whatever word it starts on.
+- It **pauses while the tab is hidden**. `setInterval` keeps firing in a
+  background tab without painting, so you'd otherwise come back to a word
+  mid-blur several steps along.
+- It initialises **every** `[data-text-cycle]` on the page, each with its own
+  words and timings, not just the first one.
 
 ## Credit
 
