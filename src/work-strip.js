@@ -24,6 +24,13 @@
  *   data-height-boost    fractional height increase at centre        (0.22)
  *   data-info-radius     px within which the name/meta fade in       (100)
  *   data-wheel-scope     "strip" | "section" — what the wheel hijacks ("strip")
+ *   data-intro-impulse   one-off velocity kick on load, 0 disables   (-500)
+ *   data-intro-delay     seconds to wait before the kick            (0.4)
+ *
+ * Also exposes window.workStripImpulse(v) — call it to kick the strip at any
+ * time, e.g. from a preloader's completion callback. Set data-intro-delay to
+ * match when your preloader finishes, or data-intro-impulse="0" to suppress the
+ * automatic kick and fire it yourself.
  */
 (function () {
   "use strict";
@@ -65,6 +72,8 @@
     var MAGNIFY_BOOST = num("data-magnify-boost", 0.25);
     var HEIGHT_BOOST = num("data-height-boost", 0.22);
     var INFO_RADIUS = num("data-info-radius", 100);
+    var INTRO_IMPULSE = num("data-intro-impulse", -500);
+    var INTRO_DELAY = num("data-intro-delay", 0.4);
 
     var BLEND_FACTOR = 0.05; // how fast velocity eases back to idle
     var LERP_SPEED = 0.08; // magnify easing
@@ -323,6 +332,21 @@
       }
       updateParallax();
     });
+
+    // One-off velocity kick. The ticker's blend then decays it back to
+    // AUTO_SPEED on its own, so the strip whips out and glides to a stop —
+    // no separate timeline needed. Exposed so a preloader can fire it instead.
+    window.workStripImpulse = function (v) {
+      velocity = typeof v === "number" ? v : INTRO_IMPULSE;
+    };
+
+    if (INTRO_IMPULSE !== 0) {
+      gsap.delayedCall(INTRO_DELAY, function () {
+        // Don't fight the user: skip the intro if they already grabbed it.
+        if (isDragging || hasDragged) return;
+        window.workStripImpulse(INTRO_IMPULSE);
+      });
+    }
 
     var resizeTimer = null;
     window.addEventListener("resize", function () {

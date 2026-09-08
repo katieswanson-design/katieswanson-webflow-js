@@ -77,6 +77,16 @@ Set as attributes on the `[data-work-strip]` element — no code change needed.
 | `data-height-boost` | `0.22` | Fractional height increase at the centre. |
 | `data-info-radius` | `100` | Distance within which the name/meta fade in. |
 | `data-wheel-scope` | `strip` | `strip` hijacks the wheel only over the strip; `section` hijacks the whole parent section. |
+| `data-intro-impulse` | `-500` | One-off velocity kick on load. `0` disables it. |
+| `data-intro-delay` | `0.4` | Seconds to wait before the kick. |
+
+The intro kick is a single velocity impulse, not a timeline — the same blend
+that returns the strip to idle drift decays it, so it whips out and glides to a
+stop over roughly 1.5s. It's skipped if the visitor already grabbed the strip.
+
+`window.workStripImpulse(v)` is exposed for firing it yourself. To drive it from
+a preloader, set `data-intro-impulse="0"` to suppress the automatic kick and
+call `window.workStripImpulse(-500)` when the preloader finishes.
 
 ### Things that will bite you
 
