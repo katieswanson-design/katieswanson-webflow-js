@@ -31,13 +31,12 @@
   var ROLES = [
     "design systems steward",
     "design engineer",
-    "design engineer“,
-    "design enablement lead”,
-    "token architect“,
-    "workflow and tooling builder“,
-    "applied AI practitioner“,
-    "playbook author“, 
-    "certified Webflow partner“,
+    "design enablement lead",
+    "token architect",
+    "workflow and tooling builder",
+    "applied AI practitioner",
+    "playbook author",
+    "certified Webflow partner",
   ];
 
   function initTextCycle() {
