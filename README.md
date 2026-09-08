@@ -79,10 +79,23 @@ Set as attributes on the `[data-work-strip]` element — no code change needed.
 | `data-wheel-scope` | `strip` | `strip` hijacks the wheel only over the strip; `section` hijacks the whole parent section. |
 | `data-intro-impulse` | `-500` | One-off velocity kick on load. `0` disables it. |
 | `data-intro-delay` | `0.4` | Seconds to wait before the kick. |
+| `data-intro-fade` | `0.7` | Seconds the strip takes to fade in over the kick. |
 
 The intro kick is a single velocity impulse, not a timeline — the same blend
 that returns the strip to idle drift decays it, so it whips out and glides to a
 stop over roughly 1.5s. It's skipped if the visitor already grabbed the strip.
+
+**Why the fade matters.** The reference site fires its impulse 1.5s in but keeps
+its preloader up until 2.3s, so the fastest 0.8s happens behind an opaque
+overlay — by the reveal, velocity has decayed from -500 to about -42. You only
+ever see the tail settling, which is what makes it feel arrived-at rather than
+jerky. With no preloader we get the same read by hiding the strip and fading it
+in while the peak burns off. Raising `data-intro-fade` hides more of the launch;
+lowering it shows more.
+
+The strip is hidden by JavaScript, never CSS, so a failed script load leaves it
+visible rather than blank. A setTimeout also force-reveals it if the intro never
+runs.
 
 `window.workStripImpulse(v)` is exposed for firing it yourself. To drive it from
 a preloader, set `data-intro-impulse="0"` to suppress the automatic kick and

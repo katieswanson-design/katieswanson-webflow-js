@@ -74,6 +74,7 @@
     var INFO_RADIUS = num("data-info-radius", 100);
     var INTRO_IMPULSE = num("data-intro-impulse", -500);
     var INTRO_DELAY = num("data-intro-delay", 0.4);
+    var INTRO_FADE = num("data-intro-fade", 0.7);
 
     var BLEND_FACTOR = 0.05; // how fast velocity eases back to idle
     var LERP_SPEED = 0.08; // magnify easing
@@ -341,11 +342,29 @@
     };
 
     if (INTRO_IMPULSE !== 0) {
+      // The reference site fires its impulse 0.8s BEFORE its preloader lifts, so
+      // the violent opening frames happen behind an opaque overlay and the
+      // visitor only ever sees the tail decelerating. With no preloader here we
+      // reproduce that by hiding the strip ourselves and fading it back in while
+      // the peak burns off. Hidden via JS, never CSS — if the script fails to
+      // load the strip must still be visible.
+      gsap.set(strip, { autoAlpha: 0 });
+
       gsap.delayedCall(INTRO_DELAY, function () {
         // Don't fight the user: skip the intro if they already grabbed it.
-        if (isDragging || hasDragged) return;
+        if (isDragging || hasDragged) {
+          gsap.set(strip, { autoAlpha: 1 });
+          return;
+        }
         window.workStripImpulse(INTRO_IMPULSE);
+        gsap.to(strip, { autoAlpha: 1, duration: INTRO_FADE, ease: "power2.out" });
       });
+
+      // Safety net: if the delayed call never runs (a stalled tab throttling
+      // rAF, say), don't leave the strip invisible forever.
+      window.setTimeout(function () {
+        gsap.set(strip, { autoAlpha: 1 });
+      }, (INTRO_DELAY + INTRO_FADE) * 1000 + 2000);
     }
 
     var resizeTimer = null;
