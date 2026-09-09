@@ -13,6 +13,7 @@ fly, so the source stays readable here and ships small.
 |---|---|---|
 | `src/work-strip.js` | Infinite drag/scroll marquee with cursor-proximity card magnification, image parallax, and proximity labels. Requires GSAP 3 core. | `/new-home` |
 | `src/text-cycle.js` | Cycles a list of words through an element, blurring out and back in between each. Requires GSAP 3 core. | `/new-home` hero |
+| `src/local-time.js` | Renders a clock for a fixed timezone, so the page shows Katie's local time rather than the visitor's. No dependencies. | `/new-home` hero |
 | `src/copy-email.js` | Copies an email to the clipboard and flips the button into a copied state. No dependencies. | Site-wide |
 | `src/copy-email.css` | Hover, focus and copied states for that button. | Site-wide |
 | `src/reset.css` | Global reset, base styles and Client-First-style utilities. | Site-wide |
@@ -289,6 +290,44 @@ unparseable or empty value silently falls back to the default.
   mid-blur several steps along.
 - It initialises **every** `[data-text-cycle]` on the page, each with its own
   words and timings, not just the first one.
+
+## local-time
+
+Writes a clock into an element for a **fixed** timezone, so visitors see Katie's
+local time in Austin rather than their own. Used under the contact pill in the
+`/new-home` hero.
+
+### Markup contract
+
+```
+<div data-local-time data-timezone="America/Chicago">3:07 pm cdt</div>
+```
+
+Put a plausible time in the element rather than leaving it empty. It is what
+renders if the script never runs, and it stops the line collapsing to zero
+height on first paint.
+
+Output is lowercased to match the site's all-lowercase brand treatment.
+
+### Tunables
+
+| Attribute | Default | Effect |
+|---|---|---|
+| `data-timezone` | `America/Chicago` | Any IANA zone name |
+| `data-meridiem` | *(shown)* | Set to `false` to drop the `am`/`pm` |
+
+### Notes
+
+- **The zone abbreviation is derived, never hardcoded.** Austin reads `cdt`
+  through daylight time and `cst` the rest of the year on its own. Writing a
+  literal `cst` into the markup would be wrong for eight months of the year.
+- It **updates on the minute boundary**, not on a fixed 60-second interval, so
+  the displayed minute is never a second stale.
+- It **repaints when the tab regains focus**. Background tabs throttle timers,
+  so the clock can be minutes behind by the time someone switches back.
+- An unusable `data-timezone` throws a `RangeError`; the script warns and leaves
+  the markup's own text in place rather than replacing a sensible fallback with
+  something broken.
 
 ## Migration from Slater
 
