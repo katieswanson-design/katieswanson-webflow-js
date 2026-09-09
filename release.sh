@@ -8,6 +8,49 @@ MSG="${1:-update scripts}"
 
 cd "$(dirname "$0")"
 
+# ---- Pre-flight: never tag or push something that cannot run ---------------
+FAIL=0
+
+# Smart quotes are a SyntaxError in JS and silently wrong in CSS. They ride in
+# from Notion/Docs/Slack pastes, so check before anything is committed.
+# python3, not grep -P — BSD grep on macOS has no -P.
+if ! python3 - <<'PYEOF'
+import glob, sys, unicodedata
+BAD = {"\u2018", "\u2019", "\u201c", "\u201d"}
+found = False
+for f in sorted(glob.glob("src/*.js") + glob.glob("src/*.css")):
+    for n, line in enumerate(open(f, encoding="utf-8"), 1):
+        for ch in BAD:
+            if ch in line:
+                print(f"!! {f}:{n} contains {ch} ({unicodedata.name(ch)})")
+                print(f"     {line.rstrip()}")
+                found = True
+                break
+sys.exit(1 if found else 0)
+PYEOF
+then
+  echo "   replace smart quotes with straight ' or \""
+  FAIL=1
+fi
+
+# Parse every script. A file that does not parse takes its whole feature down.
+for f in src/*.js; do
+  [ -e "$f" ] || continue
+  if ! node --check "$f" 2>/dev/null; then
+    echo "!! $f does not parse:"
+    node --check "$f" 2>&1 | sed 's/^/     /' | head -6
+    FAIL=1
+  fi
+done
+
+if [ "$FAIL" -ne 0 ]; then
+  echo
+  echo "Release aborted. Nothing committed, tagged, or pushed."
+  exit 1
+fi
+echo "pre-flight: syntax and quotes OK"
+
+
 if [[ -n "$(git status --porcelain)" ]]; then
   git add -A
   git commit -q -m "$MSG"

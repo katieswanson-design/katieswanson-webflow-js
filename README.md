@@ -62,8 +62,27 @@ Edit the file in `src/`, then:
 ./release.sh "slow the idle drift"
 ```
 
-That commits, bumps the patch tag, pushes, waits for jsDelivr, verifies the CDN
-is serving exactly what you committed, and prints the new URL and SRI hash.
+That runs pre-flight checks, then commits, bumps the patch tag, pushes, waits
+for jsDelivr, verifies the CDN is serving exactly what you committed, and prints
+the new URL and SRI hash.
+
+**Pre-flight aborts the release before anything is committed if:**
+
+- any `src/*.js` or `src/*.css` contains a smart quote (`‘ ’ “ ”`). These are a
+  `SyntaxError` in JS and silently wrong in CSS, and they arrive via
+  Notion/Docs/Slack pastes rather than being typed.
+- any `src/*.js` fails `node --check`.
+
+A file that does not parse takes its whole feature down at runtime, and because
+the script loads fine and only *throws*, the symptom is a dead component rather
+than an obvious error.
+
+### Editing: local vs GitHub web
+
+Edit locally and run `./release.sh`. The release pipeline only exists locally, so
+a web edit still forces a `git pull` before anything can ship. If you do edit on
+github.com, pull before releasing — `release.sh` commits what is on disk, and an
+un-pulled remote commit can be stranded.
 
 Then update the registered script in Webflow with both the new `hosted_location`
 and the new `integrity_hash` — **both**, together. Updating the URL without the
