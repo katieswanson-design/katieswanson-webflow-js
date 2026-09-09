@@ -97,7 +97,19 @@ unused local `slate/*` ramp, which was colder (−93°) and unrelated to the bra
 
 ---
 
-## Semantic roles
+## Collection structure
+
+Modes are per-collection in Webflow, and each layer needs a different mode axis.
+That constraint sets the structure:
+
+| Collection | Modes | Holds |
+|---|---|---|
+| `primitives` | none | raw ramps — nothing binds to these directly |
+| `color` | Light · Dark | semantic colour roles, aliases only |
+| `typography` | role modes (H1…) | families, weights, sizes, rhythm |
+| `space` | none | spacing, radius, grid, containers |
+
+## Colour roles
 
 Two modes: **Light** and **Dark**. Every value is an alias to a primitive —
 nothing holds a raw hex, so switching modes re-points references rather than
@@ -125,6 +137,7 @@ passing, which matters now that the site carries writing.
 | `surface/secondary` | neutral/100 | navy/800 |
 | `surface/raised` | base/white | navy/800 |
 | `surface/inverse` | navy/900 | neutral/50 |
+| `surface/inverse-raised` | navy/800 | navy/700 |
 | `surface/accent` | emerald/400 | emerald/400 |
 | `surface/accent-subtle` | emerald/100 | emerald/900 |
 
@@ -152,3 +165,38 @@ divider, not acceptable as the only indicator of a form field boundary.
 - Nothing binds to a primitive directly. Styles bind to semantic roles only.
 - Contrast figures are WCAG 2.1 relative luminance. AA = 4.5:1 normal text,
   3:1 large text and non-text UI. AAA = 7:1.
+
+
+---
+
+## Build status
+
+**Done 2026-09-09**
+
+- `primitives` rebuilt: 35 tokens, three complete ramps plus white/black.
+- `color` rebuilt in place from the old `BASE COLLECTION`: 16 roles, all
+  converted from flat hex to primitive aliases, Light and Dark populated.
+  Existing tokens were **renamed** rather than replaced, so every style binding
+  survived.
+
+**Visible changes to existing pages**
+
+| Role | Was | Now | Effect |
+|---|---|---|---|
+| `text/accent` | `#4ca077` | `#307e5b` | the AA fix — accent text and link underlines, 9 styles |
+| `border/subtle` | `#f1f4f9` | `#e1e5ea` | borders slightly darker, 5 styles |
+| `text/inverse` | `white` | `#f8fafe` | imperceptible, 10 styles |
+
+Everything else resolves to the same value it held before.
+
+**Still to move out of `color`**
+
+- `Font/Headings`, `Font/Body copy`, `Font/code` → `typography`
+- `TYPOGRAPHY/paragraph-*`, `heading-weight`, `eyebrow-weight` → `typography`
+- `template/LH *`, `template/LS *`, `template/RT *` → `typography` (line-height,
+  letter-spacing, vertical rhythm)
+- `template/Shade 1–6` → need semantic colour roles or retirement
+- `Untitled UI/Warning500` → a feedback role, or drop it
+
+**Manual step:** the API cannot rename a collection. `BASE COLLECTION` needs
+renaming to `color` in the Designer.
