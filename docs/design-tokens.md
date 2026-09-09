@@ -192,16 +192,14 @@ of `Color` · 9 `radius/*` moved from `Layout` to `Shape` · `Font/code` and
 
 | Role | Was | Now |
 |---|---|---|
-| `text/accent` | `#4ca077` | `#307e5b` — the AA fix, 3.18:1 → 4.93:1 |
+| `text/accent` | `#4ca077` | `#307e5b` — the AA fix, 3.18:1 → 4.93:1. Used on the logo; change reviewed and accepted. |
 | `border/subtle` | `#f1f4f9` | `#e1e5ea` |
 | `text/inverse` | `white` | `#f8fafe` |
 | template Shades | pure greys | navy-tinted neutrals — slightly cooler |
 
 ## Known issues
 
-**`text-color-warning500` and its `Untitled UI/Warning500` token.** Both should
-go, but `remove_style` fails with an internal error through the API. Delete the
-style in the Designer, then the token can be removed.
+`Color` is clean — 16 roles, every one an alias, Light and Dark populated, nothing else in the collection.
 
 **9 styles carry broken `@swatch_` references** to `Untitled UI` variables
 deleted on 2026-09-08: `uui-badge` and `badge-dot` were repointed to semantic
