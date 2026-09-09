@@ -277,3 +277,41 @@ a,
     display: none !important;
   }
 }
+
+/* ------------------------------------------------------ REDUCED MOTION --- */
+
+/*
+ * Honour prefers-reduced-motion site-wide.
+ *
+ * Webflow interactions (IX2) do not check this setting themselves, so anything
+ * that loops — the availability dot's blink, for one — keeps running unless it
+ * is stopped here.
+ *
+ * Durations collapse to near-zero rather than being removed outright so that
+ * animationend and transitionend still fire; code that waits on those events
+ * would otherwise stall forever.
+ *
+ * This does NOT stop GSAP, which animates inline styles from JS and never
+ * touches CSS animation or transition. Scripts have to opt in themselves —
+ * text-cycle.js already does. The work strip's auto-scroll does not.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /*
+   * IX2 stamps style="opacity:0" inline at page load and animates up from
+   * there. Stopping the animation alone would leave the dot permanently
+   * invisible, so its resting state has to be restored explicitly — and an
+   * inline style outranks a stylesheet rule, hence !important.
+   */
+  .available-dot {
+    opacity: 1 !important;
+  }
+}
