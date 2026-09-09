@@ -135,7 +135,32 @@ and `data-magnify-boost` drives height.
 | Variant | Track | Strip | Card |
 |---|---|---|---|
 | **Horizontal** (base) | `row`, `align-items: flex-end` | `100%` wide, `55vh` tall, `-2.5rem` bottom bleed | `27vw × 50vh` |
-| **Vertical** | `column`, `align-items: stretch` | `28%` wide, `100%` tall, no bleed | `100% × 46vh` |
+| **Vertical** | `column`, `align-items: stretch` | fills its wrapper, no bleed | `100% × 46vh` |
+
+Vertical fills whatever container it is placed in; the positioned wrapper
+(`.hero-v2_strip-col` on `/new-home-v2`) sets the column geometry. That keeps
+the variant portable rather than hardcoding one hero's proportions.
+
+#### Label placement is coupled to the drift direction
+
+The label should sit on the **leading edge** — the side of the card that enters
+the viewport first — so it is readable while the image is still sliding in
+rather than only once the card has fully arrived.
+
+Which edge that is depends on the sign of `data-auto-speed`:
+
+| `data-auto-speed` | Track moves | Cards enter from | Leading edge | Label goes |
+|---|---|---|---|---|
+| negative (default) | up | bottom | **top** of the card | above (DOM order, no `order`) |
+| positive | down | top | **bottom** of the card | below (`order: 2`) |
+
+The reference site puts its label below the card (`order: 2`) while drifting
+negative, so its labels arrive last. We put ours above. **If you ever flip
+`data-auto-speed` positive, flip the label back to `order: 2`** or it will lag
+behind the image again.
+
+The same logic applies horizontally, but the horizontal strip is much wider than
+it is tall, so a card is on screen long enough that it matters far less.
 
 Vertical flips back to a horizontal row at `medium` (≤991px), matching the
 reference — the script rebuilds along the new axis automatically. The label also
