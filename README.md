@@ -227,6 +227,30 @@ runs.
 a preloader, set `data-intro-impulse="0"` to suppress the automatic kick and
 call `window.workStripImpulse(-500)` when the preloader finishes.
 
+### Reduced motion
+
+Under `prefers-reduced-motion: reduce` the strip builds a **variant** rather
+than switching off:
+
+| | Normal | Reduced |
+|---|---|---|
+| Auto-scroll | yes | **no** |
+| Intro impulse + fade | yes | **no** |
+| Proximity magnification | yes | **no** |
+| Image parallax (and its 1.3 zoom) | yes | **no** |
+| Drag, wheel, proximity labels | yes | **yes** |
+
+It used to bail out of `init` entirely. That was worse, not safer: the track is
+`overflow`-clipped, so every card past the fold became unreachable — the setting
+cost you the content, not just the motion. Now nothing moves on its own and the
+visitor pages through at their own speed, which is what
+["provide a reduced-motion variant"](https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions)
+and "avoid autoplay" actually ask for.
+
+`window.workStripImpulse()` is a no-op under the setting, so an external caller
+can't restart the motion behind the visitor's back. The media query is watched
+live — flipping the OS setting with the page open rebuilds the strip.
+
 ### Things that will bite you
 
 - **`.work-strip_info` must be `pointer-events: none`** or the drag stutters

@@ -72,10 +72,9 @@
     if (!originalItems.length) return;
     if (!originalItems[0].querySelector(".work-strip_card")) return;
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      gsap.set(strip, { cursor: "default" });
-      return;
-    }
+    // A live handle, not a one-off read, so toggling the OS setting with the
+    // page open rebuilds the strip instead of stranding whatever was running.
+    var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     function num(attr, fallback) {
       var raw = strip.getAttribute(attr);
@@ -110,6 +109,16 @@
     function setup(direction, playIntro) {
       var isVertical = direction === "vertical";
       var cs = window.getComputedStyle(track);
+
+      // Reduced-motion variant. The strip still builds and can still be
+      // dragged or wheeled through; it just never moves on its own, and drops
+      // the proximity magnification and image parallax.
+      //
+      // This used to bail out of init entirely. That was worse: the track is
+      // overflow-clipped, so every card past the fold became unreachable —
+      // the setting cost you the content instead of just the motion.
+      var reduced = reducedMotion.matches;
+      var autoSpeed = reduced ? 0 : AUTO_SPEED;
 
       // The gap that separates items is column-gap on a row, row-gap on a
       // column. Measured, never hardcoded, so changing it in the Designer
@@ -162,10 +171,11 @@
       // flips with the axis.
       var infoHideY = isVertical ? -5 : 5;
       gsap.set(allInfos, { autoAlpha: 0, y: infoHideY });
-      gsap.set(allImages, { scale: PARALLAX_SCALE });
+      // The zoom exists only to give the parallax room to pan into.
+      gsap.set(allImages, { scale: reduced ? 1 : PARALLAX_SCALE });
 
       var pos = 0;
-      var velocity = AUTO_SPEED;
+      var velocity = autoSpeed;
       var isDragging = false;
       var hasDragged = false;
       var lastPointer = 0;
@@ -381,7 +391,7 @@
           velocity = dragDelta;
           dragDelta = 0;
         } else {
-          velocity += (AUTO_SPEED - velocity) * BLEND_FACTOR;
+          velocity += (autoSpeed - velocity) * BLEND_FACTOR;
           velocity += wheelVelocity;
           wheelVelocity *= 0.88;
           if (Math.abs(wheelVelocity) < 0.01) wheelVelocity = 0;
@@ -392,22 +402,26 @@
         if (pos > 0) pos -= setSize;
         gsap.set(track, isVertical ? { y: pos } : { x: pos });
 
-        if (isHovering && !isDragging && window.innerWidth > MAGNIFY_MIN_WIDTH) {
-          updateMagnification();
+        if (!reduced) {
+          if (isHovering && !isDragging && window.innerWidth > MAGNIFY_MIN_WIDTH) {
+            updateMagnification();
+          }
+          updateParallax();
         }
-        updateParallax();
       }
 
       gsap.ticker.add(tick);
 
       window.workStripImpulse = function (v) {
+        // Honour the setting even when something external calls this.
+        if (reduced) return;
         velocity = typeof v === "number" ? v : INTRO_IMPULSE;
       };
 
       var introCall = null;
       var introTimeout = null;
 
-      if (playIntro && INTRO_IMPULSE !== 0) {
+      if (playIntro && INTRO_IMPULSE !== 0 && !reduced) {
         // The reference fires its impulse 0.8s BEFORE its preloader lifts, so
         // the violent opening frames play behind an opaque overlay and only the
         // decelerating tail is ever seen. With no preloader we hide the strip
@@ -468,18 +482,27 @@
     currentDirection = readDirection();
     teardown = setup(currentDirection, true);
 
+    function rebuild() {
+      if (teardown) teardown();
+      gsap.set(strip, { autoAlpha: 1 });
+      currentDirection = readDirection();
+      teardown = setup(currentDirection, false);
+    }
+
+    // Someone can flip the OS motion setting while the page is open.
+    if (reducedMotion.addEventListener) {
+      reducedMotion.addEventListener("change", rebuild);
+    } else if (reducedMotion.addListener) {
+      reducedMotion.addListener(rebuild); // Safari < 14
+    }
+
     var resizeTimer = null;
     window.addEventListener("resize", function () {
       if (resizeTimer) resizeTimer.kill();
-      resizeTimer = gsap.delayedCall(0.25, function () {
-        // Rebuild on every settled resize, not just an axis change: card sizes
-        // are vw/vh based, so the clone count and loop seam need re-measuring
-        // either way. The intro never replays — it belongs to first load only.
-        if (teardown) teardown();
-        gsap.set(strip, { autoAlpha: 1 });
-        currentDirection = readDirection();
-        teardown = setup(currentDirection, false);
-      });
+      // Rebuild on every settled resize, not just an axis change: card sizes
+      // are vw/vh based, so the clone count and loop seam need re-measuring
+      // either way. The intro never replays — it belongs to first load only.
+      resizeTimer = gsap.delayedCall(0.25, rebuild);
     });
   }
 

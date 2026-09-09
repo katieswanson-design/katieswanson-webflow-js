@@ -292,8 +292,9 @@ a,
  * would otherwise stall forever.
  *
  * This does NOT stop GSAP, which animates inline styles from JS and never
- * touches CSS animation or transition. Scripts have to opt in themselves —
- * text-cycle.js already does. The work strip's auto-scroll does not.
+ * touches CSS animation or transition. Scripts have to opt in themselves.
+ * Both of ours do: text-cycle.js stops cycling, and work-strip.js drops to a
+ * variant that never auto-scrolls but stays draggable.
  */
 @media (prefers-reduced-motion: reduce) {
   *,
