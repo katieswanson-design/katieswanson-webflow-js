@@ -171,32 +171,56 @@ divider, not acceptable as the only indicator of a form field boundary.
 
 ## Build status
 
-**Done 2026-09-09**
+**Complete 2026-09-09.** Five collections, each with its own mode axis.
 
-- `primitives` rebuilt: 35 tokens, three complete ramps plus white/black.
-- `color` rebuilt in place from the old `BASE COLLECTION`: 16 roles, all
-  converted from flat hex to primitive aliases, Light and Dark populated.
-  Existing tokens were **renamed** rather than replaced, so every style binding
-  survived.
+| Collection | Modes | Contents |
+|---|---|---|
+| `Primitives` | none | navy · emerald-city · neutral ramps (11 each) · white · black · font-family ×2 · font-weight ×4 · line-height ×2 · letter-spacing ×1 |
+| `Color` | Light · Dark | 16 semantic roles — 5 text, 7 surface, 4 border. **Aliases only, no raw hex.** |
+| `Typography` | 11 role modes | `font/` · `weight/` · `line-height/` · `letter-spacing/` · `space/` — tier 2, aliasing into Primitives |
+| `Shape` | none | `radius/xs…4xl` · `radius/full` |
+| `Layout` | none | `site padding/` · `container/` · `grid/` |
 
-**Visible changes to existing pages**
+**Migration performed:** 67 style groups repointed, 149 property writes. `base`
+and `main` proved to be exact mirrors, so writing `base` covered both.
 
-| Role | Was | Now | Effect |
-|---|---|---|---|
-| `text/accent` | `#4ca077` | `#307e5b` | the AA fix — accent text and link underlines, 9 styles |
-| `border/subtle` | `#f1f4f9` | `#e1e5ea` | borders slightly darker, 5 styles |
-| `text/inverse` | `white` | `#f8fafe` | imperceptible, 10 styles |
+**Retired:** all 12 `template/*` tokens · `Font/*` and `font-weight/*` moved out
+of `Color` · 9 `radius/*` moved from `Layout` to `Shape` · `Font/code` and
+`font-weight/eyebrow-weight` (unused) · `slate/*` (unused) · 29 `Untitled UI/*`.
 
-Everything else resolves to the same value it held before.
+**Visible changes**
 
-**Still to move out of `color`**
+| Role | Was | Now |
+|---|---|---|
+| `text/accent` | `#4ca077` | `#307e5b` — the AA fix, 3.18:1 → 4.93:1 |
+| `border/subtle` | `#f1f4f9` | `#e1e5ea` |
+| `text/inverse` | `white` | `#f8fafe` |
+| template Shades | pure greys | navy-tinted neutrals — slightly cooler |
 
-- `Font/Headings`, `Font/Body copy`, `Font/code` → `typography`
-- `TYPOGRAPHY/paragraph-*`, `heading-weight`, `eyebrow-weight` → `typography`
-- `template/LH *`, `template/LS *`, `template/RT *` → `typography` (line-height,
-  letter-spacing, vertical rhythm)
-- `template/Shade 1–6` → need semantic colour roles or retirement
-- `Untitled UI/Warning500` → a feedback role, or drop it
+## Known issues
 
-**Manual step:** the API cannot rename a collection. `BASE COLLECTION` needs
-renaming to `color` in the Designer.
+**`text-color-warning500` and its `Untitled UI/Warning500` token.** Both should
+go, but `remove_style` fails with an internal error through the API. Delete the
+style in the Designer, then the token can be removed.
+
+**9 styles carry broken `@swatch_` references** to `Untitled UI` variables
+deleted on 2026-09-08: `uui-badge` and `badge-dot` were repointed to semantic
+roles; `is-blue`, `is-orange`, `is-indigo`, `text-color-blue500`,
+`text-color-indigo500`, `text-color-pink500` still dangle. They are template
+palette classes with no equivalent in a navy/emerald brand.
+
+**Lesson:** Webflow styles reference colour variables two ways — as a binding
+(`{id: variable-…}`) and as a **swatch** (`"@swatch_<id>"`). An audit that only
+checks bindings will report a variable as unused when swatches still point at it.
+Check both before deleting.
+
+**3 pre-existing dangling refs:** `is-pink` (×2) and `Long Link Border` bind
+variables that exist in no collection.
+
+## API limitations hit
+
+- No rename for collections — only variables.
+- No move between collections — delete, recreate, repoint every binding.
+- `custom_value` writes always fail.
+- `remove_style` always fails.
+- `row-gap` rejects a variable; use the legacy `grid-row-gap`.
