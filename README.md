@@ -251,6 +251,29 @@ and "avoid autoplay" actually ask for.
 can't restart the motion behind the visitor's back. The media query is watched
 live — flipping the OS setting with the page open rebuilds the strip.
 
+### Keyboard
+
+The items are `a.work-strip_item`, so they are in the tab order already. Clones
+are `aria-hidden="true"` and `tabindex="-1"`, so a project is announced once,
+not once per copy.
+
+The track moves by `transform`, not `scroll`, so the browser cannot bring a
+focused card into view by itself — without help, tabbing past the fold focuses a
+card clipped out of sight, which fails both
+[2.4.7 Focus Visible](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible)
+and [2.4.11 Focus Not Obscured](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum).
+So on `focusin` the script centres the focused item on the active axis and
+**holds the auto-scroll still for as long as focus is inside the strip**.
+
+It keys off `:focus-visible`, not `:focus` — a click focuses the link too, and
+pointer users should never have the strip yanked at them.
+
+**Still outstanding:** for visitors who are not on reduced motion and not using
+a keyboard, the strip autoplays indefinitely with no pause control, which is
+[2.2.2 Pause, Stop, Hide](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide)
+(Level A). Reduced motion does not discharge it. A hover- or delay-revealed
+play/pause button is the intended fix.
+
 ### Things that will bite you
 
 - **`.work-strip_info` must be `pointer-events: none`** or the drag stutters

@@ -258,6 +258,64 @@
         wheelVelocity += e.deltaY * 0.009;
       }
 
+      // --- Keyboard focus ---------------------------------------------------
+      //
+      // The items are real links, so they are already in the tab order (clones
+      // are aria-hidden and tabindex="-1", so only the originals are). But the
+      // track moves by transform rather than scroll, so the browser has no way
+      // to bring a focused card into view on its own — tabbing to anything past
+      // the fold would focus a card clipped out of sight.
+      //
+      // So centre it here, and hold the auto-scroll still while focus is inside
+      // the strip. Drifting a card away from the person who just tabbed to it is
+      // its own problem, separate from getting it on screen in the first place.
+      var focusPaused = false;
+
+      function focusableItem(node) {
+        if (!node || !node.closest) return null;
+        var item = node.closest(".work-strip_item");
+        if (!item || item.getAttribute("aria-hidden") === "true") return null;
+        return item;
+      }
+
+      function centreItem(item) {
+        var itemRect = item.getBoundingClientRect();
+        var stripRect = strip.getBoundingClientRect();
+        var delta = isVertical
+          ? stripRect.top + stripRect.height / 2 - (itemRect.top + itemRect.height / 2)
+          : stripRect.left + stripRect.width / 2 - (itemRect.left + itemRect.width / 2);
+
+        pos += delta;
+        if (pos < -setSize) pos += setSize;
+        if (pos > 0) pos -= setSize;
+        gsap.set(track, isVertical ? { y: pos } : { x: pos });
+      }
+
+      function onFocusIn(e) {
+        var item = focusableItem(e.target);
+        if (!item) return;
+
+        // A click focuses the link too. :focus-visible is what separates that
+        // from a real tab, so pointer users never get the strip yanked at them.
+        try {
+          if (!item.matches(":focus-visible")) return;
+        } catch (err) {
+          // No :focus-visible support — treat every focus as keyboard.
+        }
+
+        focusPaused = true;
+        velocity = 0;
+        centreItem(item);
+      }
+
+      function onFocusOut(e) {
+        // relatedTarget is where focus is going; null means it left the document.
+        if (e.relatedTarget && strip.contains(e.relatedTarget)) return;
+        focusPaused = false;
+      }
+
+      strip.addEventListener("focusin", onFocusIn);
+      strip.addEventListener("focusout", onFocusOut);
       strip.addEventListener("pointerdown", onPointerDown);
       strip.addEventListener("pointermove", onPointerMove);
       strip.addEventListener("pointerup", onPointerUp);
@@ -391,7 +449,7 @@
           velocity = dragDelta;
           dragDelta = 0;
         } else {
-          velocity += (autoSpeed - velocity) * BLEND_FACTOR;
+          velocity += ((focusPaused ? 0 : autoSpeed) - velocity) * BLEND_FACTOR;
           velocity += wheelVelocity;
           wheelVelocity *= 0.88;
           if (Math.abs(wheelVelocity) < 0.01) wheelVelocity = 0;
@@ -451,6 +509,8 @@
         if (introCall) introCall.kill();
         if (introTimeout) window.clearTimeout(introTimeout);
 
+        strip.removeEventListener("focusin", onFocusIn);
+        strip.removeEventListener("focusout", onFocusOut);
         strip.removeEventListener("pointerdown", onPointerDown);
         strip.removeEventListener("pointermove", onPointerMove);
         strip.removeEventListener("pointerup", onPointerUp);
