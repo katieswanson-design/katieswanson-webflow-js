@@ -107,6 +107,45 @@ div[data-work-strip].work-strip          ← the custom attribute is required
         └ img.work-strip_image
 ```
 
+### Direction: horizontal and vertical
+
+**The axis is decided by CSS, not JS.** The script reads
+`getComputedStyle(track).flexDirection` and follows it — `column` means
+vertical, anything else horizontal. There is no breakpoint or direction setting
+in the script to keep in sync.
+
+The reference site hardcoded `matchMedia("(min-width: 992px)")` in JS next to a
+`max-width: 991px` media query in CSS: two numbers that had to agree, with a
+broken strip in the gap if they ever drifted. Reading the computed value removes
+that class of bug, and means a Webflow variant, a media query, or a one-off
+override can all flip the axis with no code change.
+
+On resize the marquee tears down and rebuilds — clones removed, listeners
+unbound, inline sizes cleared — so switching axis at a breakpoint is clean. The
+intro impulse only ever plays on first load, never on a rebuild.
+
+**In vertical mode only card height is magnified.** Cards are full-width inside a
+fixed-width column, so width has nowhere to grow. `data-height-boost` is ignored
+and `data-magnify-boost` drives height.
+
+#### The Webflow component
+
+`Work Strip` (group: Components) has two variants:
+
+| Variant | Track | Strip | Card |
+|---|---|---|---|
+| **Horizontal** (base) | `row`, `align-items: flex-end` | `100%` wide, `55vh` tall, `-2.5rem` bottom bleed | `27vw × 50vh` |
+| **Vertical** | `column`, `align-items: stretch` | `28%` wide, `100%` tall, no bleed | `100% × 46vh` |
+
+Vertical flips back to a horizontal row at `medium` (≤991px), matching the
+reference — the script rebuilds along the new axis automatically. The label also
+moves below the card in vertical (`order: 2`) and back above at ≤991px.
+
+Vertical sits in normal flow as a `28%`-wide column rather than being pinned.
+The reference positioned theirs absolutely (`position: absolute; left: 15%`)
+against a specific hero; add that on the instance if you want the same
+composition, rather than baking it into the variant.
+
 ### Tunables
 
 Set as attributes on the `[data-work-strip]` element — no code change, just a
