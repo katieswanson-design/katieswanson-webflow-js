@@ -34,9 +34,9 @@
     "design enablement lead",
     "token architect",
     "workflow and tooling builder",
-    "applied AI practitioner",
+    "applied ai practitioner",
     "playbook author",
-    "certified Webflow partner",
+    "certified webflow partner",
   ];
 
   function initTextCycle() {
