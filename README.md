@@ -393,11 +393,11 @@ not if the animation were GSAP-driven.
 ### Markup contract
 
 ```
-div.work-panels
-└ a.work-panels_panel              ← one per project
-  ├ img.work-panels_image
-  └ div.work-panels_caption
-    └ div.work-panels_title        ← rendered as a badge
+div.hero-skills
+└ a.hero-skill_panel              ← one per project
+  ├ img.hero-skill_image
+  └ div.hero-skill_caption
+    └ div.hero-skill_title        ← rendered as a badge
 ```
 
 Structural styles (flex basis, sizing, colour, type) live in the Webflow
@@ -410,7 +410,7 @@ Which panel sits open at rest is set by an `nth-child` in the stylesheet — cur
 the **third**:
 
 ```css
-.work-panels:not(:hover):not(:focus-within) .work-panels_panel:nth-child(3) { flex-grow: 6; }
+.hero-skills:not(:hover):not(:focus-within) .hero-skill_panel:nth-child(3) { flex-grow: 6; }
 ```
 
 Change the index there to move it. Three rules use it (panel, image, caption), so
