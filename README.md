@@ -429,8 +429,10 @@ open one takes `grow / (n - 1 + grow)` of the row:
 | Panels | grow | Open | Each closed |
 |---|---|---|---|
 | 5 | 5.2 | 56% | 11% |
-| 8 | 5.2 | 43% | 8.2% |
-| **8** | **6** | **46%** | **7.7%** |
+| 8 | 4 | 36% | 9.1% |
+| **8** | **5** | **41.7%** | **8.3%** |
+| 8 | 6 | 46.2% | 7.7% |
+| 8 | 9 | 56.3% | 5.4% |
 
 Below roughly 1280px the closed slivers get too narrow to read at eight panels —
 that is the point to drop to five or six per breakpoint.
