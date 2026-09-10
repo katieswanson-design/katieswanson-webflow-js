@@ -112,6 +112,35 @@
   }
 }
 
+/* ------------------------------------------------------- panel count --- */
+
+/*
+ * Drop a panel at a time as the row narrows. A sliver stops reading as an
+ * image below roughly 75px, and eight of them plus seven gaps eat the width
+ * fast.
+ *
+ * display:none rather than visibility/opacity, so a hidden panel also leaves
+ * the tab order — nothing focusable that nobody can see.
+ *
+ * Fewer panels also widens what is left, which is the point: at flex-grow 6,
+ * eight panels give the open one 46.2% and each sliver 7.7%; seven give 50%
+ * and 8.3%; six give 54.5% and 9.1%.
+ */
+
+/* 1025-1439 — seven */
+@media (max-width: 1439px) {
+  .hero-skill_panel:nth-child(n + 8) {
+    display: none;
+  }
+}
+
+/* 992-1024 — six */
+@media (max-width: 1024px) {
+  .hero-skill_panel:nth-child(n + 7) {
+    display: none;
+  }
+}
+
 /* ------------------------------------------------------------- focus --- */
 
 /*
