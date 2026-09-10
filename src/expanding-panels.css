@@ -42,7 +42,7 @@
  * means no JavaScript has to maintain that state.
  */
 .hero-skills:not(:hover):not(:focus-within) .hero-skill_panel:nth-child(3) {
-  flex-grow: 5;
+  flex-grow: 6;
 }
 
 .hero-skills:not(:hover):not(:focus-within)
@@ -54,7 +54,7 @@
 
 .hero-skill_panel:hover,
 .hero-skill_panel:focus-visible {
-  flex-grow: 5;
+  flex-grow: 6;
 }
 
 .hero-skill_panel:hover .hero-skill_caption,
