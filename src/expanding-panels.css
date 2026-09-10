@@ -11,8 +11,8 @@
  * a keyboard or a phone, where there is no hover at all.
  *
  * Expansion keys off :focus, not :focus-visible, so a tap on a touch device
- * opens a panel; the visible ring stays on :focus-visible so pointer users
- * never see an outline they did not ask for.
+ * opens a panel — a tap does not match :focus-visible. The visible ring stays
+ * on :focus-visible so pointer users never see an outline they did not ask for.
  *
  * There is deliberately no JavaScript. The BYQ gem this is modelled on ships a
  * script because it built the panels as an ARIA tablist, which needs roving
@@ -60,13 +60,19 @@
   transform: none;
 }
 
+/*
+ * Hover wins whenever the pointer is over the row; focus is only the fallback
+ * for when it is not. Without the :not(:hover) guard, clicking a panel leaves
+ * it focused and therefore open, so hovering a second one shows two at once.
+ * This also makes click behave as "pin": it stays open once the pointer leaves.
+ */
 .hero-skill_panel:hover,
-.hero-skill_panel:focus {
+.hero-skills:not(:hover) .hero-skill_panel:focus {
   flex-grow: 6;
 }
 
 .hero-skill_panel:hover .hero-skill_caption,
-.hero-skill_panel:focus .hero-skill_caption {
+.hero-skills:not(:hover) .hero-skill_panel:focus .hero-skill_caption {
   opacity: 1;
   transform: none;
 }
