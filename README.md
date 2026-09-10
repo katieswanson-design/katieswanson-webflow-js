@@ -396,10 +396,8 @@ not if the animation were GSAP-driven.
 div.work-panels
 └ a.work-panels_panel              ← one per project
   ├ img.work-panels_image
-  ├ div.work-panels_scrim           ← aria-hidden="true"
   └ div.work-panels_caption
-    ├ div.work-panels_eyebrow
-    └ div.work-panels_title
+    └ div.work-panels_title        ← rendered as a badge
 ```
 
 Structural styles (flex basis, sizing, colour, type) live in the Webflow
@@ -408,11 +406,15 @@ combinators and `:focus-visible`.
 
 ### How the rest state works
 
-The first panel sits open until someone interacts with the row:
+Which panel sits open at rest is set by an `nth-child` in the stylesheet — currently
+the **third**:
 
 ```css
-.work-panels:not(:hover):not(:focus-within) .work-panels_panel:first-child { flex-grow: 6; }
+.work-panels:not(:hover):not(:focus-within) .work-panels_panel:nth-child(3) { flex-grow: 6; }
 ```
+
+Change the index there to move it. Three rules use it (panel, image, caption), so
+change all three together.
 
 `:not(:hover):not(:focus-within)` *is* "nothing is being pointed at or tabbed
 into". Expressing it that way avoids both the specificity fight you get from

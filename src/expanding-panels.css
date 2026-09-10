@@ -40,34 +40,26 @@
   transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.work-panels_scrim {
-  background-image: linear-gradient(
-    to top,
-    rgba(13, 24, 38, 0.78) 0%,
-    rgba(13, 24, 38, 0) 58%
-  );
-}
-
 /* ------------------------------------------------------- opened panel --- */
 
 /*
- * The first panel is open until someone points at or tabs into the row.
+ * The third panel is open until someone points at or tabs into the row.
  * :not(:hover):not(:focus-within) IS "nothing is being interacted with", which
  * avoids the specificity fight you get from overriding an .is-active class and
  * means no JavaScript has to maintain that state.
  */
-.work-panels:not(:hover):not(:focus-within) .work-panels_panel:first-child {
+.work-panels:not(:hover):not(:focus-within) .work-panels_panel:nth-child(3) {
   flex-grow: 6;
 }
 
 .work-panels:not(:hover):not(:focus-within)
-  .work-panels_panel:first-child
+  .work-panels_panel:nth-child(3)
   .work-panels_image {
   filter: none;
 }
 
 .work-panels:not(:hover):not(:focus-within)
-  .work-panels_panel:first-child
+  .work-panels_panel:nth-child(3)
   .work-panels_caption {
   opacity: 1;
   transform: none;
