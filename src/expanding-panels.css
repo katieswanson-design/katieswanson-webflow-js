@@ -6,10 +6,18 @@
  * editable; this file holds only what the Designer cannot express — descendant
  * combinators and :focus-visible.
  *
+ * The panels are <button> elements. They have to be focusable and tappable
+ * because the badge names a skill — that content is unreachable otherwise on
+ * a keyboard or a phone, where there is no hover at all.
+ *
+ * Expansion keys off :focus, not :focus-visible, so a tap on a touch device
+ * opens a panel; the visible ring stays on :focus-visible so pointer users
+ * never see an outline they did not ask for.
+ *
  * There is deliberately no JavaScript. The BYQ gem this is modelled on ships a
  * script because it built the panels as an ARIA tablist, which needs roving
- * tabindex and arrow keys. Built as links instead, :hover and :focus-visible do
- * the whole job, Tab already moves between them correctly, and the global
+ * tabindex and arrow keys. A plain row of buttons needs none of that: Tab moves
+ * between them natively, :hover and :focus do the reveal, and the global
  * prefers-reduced-motion guard in reset.css applies for free — which it could
  * not do if this were driven by GSAP.
  *
@@ -53,12 +61,12 @@
 }
 
 .hero-skill_panel:hover,
-.hero-skill_panel:focus-visible {
+.hero-skill_panel:focus {
   flex-grow: 6;
 }
 
 .hero-skill_panel:hover .hero-skill_caption,
-.hero-skill_panel:focus-visible .hero-skill_caption {
+.hero-skill_panel:focus .hero-skill_caption {
   opacity: 1;
   transform: none;
 }

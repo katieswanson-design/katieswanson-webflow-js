@@ -385,16 +385,22 @@ than ported.
 
 **There is no JavaScript, deliberately.** The gem ships a script because it built
 the panels as an ARIA `tablist`, and tabs require roving tabindex plus arrow-key
-handling. Built as plain links instead, `:hover` and `:focus-visible` do the
-whole job, Tab already moves between them in the right order, and the global
+handling. A plain row of `<button>` elements needs none of that: Tab moves between
+them natively, `:hover` and `:focus` do the reveal, and the global
 `prefers-reduced-motion` guard in `reset.css` applies for free — which it could
 not if the animation were GSAP-driven.
+
+**They are `<button>`, not links or divs.** The badge names a skill, so that content
+has to be reachable without a mouse. A div is not focusable and a phone has no
+hover, which would have left seven of eight skills unreadable. Expansion keys off
+`:focus` rather than `:focus-visible` so a tap opens a panel; the visible ring
+stays on `:focus-visible` so pointer users never get an outline.
 
 ### Markup contract
 
 ```
 div.hero-skills
-└ a.hero-skill_panel              ← one per project
+└ button.hero-skill_panel         ← one per skill
   ├ img.hero-skill_image
   └ div.hero-skill_caption
     └ div.hero-skill_title        ← rendered as a badge
