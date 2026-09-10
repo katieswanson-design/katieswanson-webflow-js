@@ -10,9 +10,13 @@
  * because the badge names a skill — that content is unreachable otherwise on
  * a keyboard or a phone, where there is no hover at all.
  *
- * Expansion keys off :focus, not :focus-visible, so a tap on a touch device
- * opens a panel — a tap does not match :focus-visible. The visible ring stays
- * on :focus-visible so pointer users never see an outline they did not ask for.
+ * Behaviour is split by input mode. On pointer devices only hover and keyboard
+ * (:focus-visible) open a panel — a mouse click deliberately does nothing, so
+ * it cannot pin one open. On touch there is no hover and a tap does not match
+ * :focus-visible, so plain :focus is what opens a panel there.
+ *
+ * Requires :has() (Chrome 105+, Safari 15.4+, Firefox 121+) to check focus at
+ * the row level.
  *
  * There is deliberately no JavaScript. The BYQ gem this is modelled on ships a
  * script because it built the panels as an ARIA tablist, which needs roving
@@ -29,7 +33,7 @@
  *       └ div.hero-skill_title      ← rendered as a badge
  */
 
-/* --------------------------------------------------------- rest state --- */
+/* --------------------------------------------------------- base state --- */
 
 .hero-skill_panel {
   transition: flex-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1);
@@ -41,47 +45,78 @@
   transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ------------------------------------------------------- opened panel --- */
+/* ------------------------------------------------- pointer + keyboard --- */
 
 /*
- * The third panel is open until someone points at or tabs into the row.
- * :not(:hover):not(:focus-within) IS "nothing is being interacted with", which
- * avoids the specificity fight you get from overriding an .is-active class and
- * means no JavaScript has to maintain that state.
+ * Split by input mode rather than stacking more :not() guards on one chain,
+ * because the two modes genuinely want different triggers.
+ *
+ * Here, focus is :focus-visible — keyboard only. A mouse click focuses a
+ * button too, and keying off plain :focus would leave the clicked panel open
+ * while the pointer moved on, showing two at once.
+ *
+ * The :not(:hover) guard on the row means hover always wins over a lingering
+ * keyboard focus, so exactly one panel is ever open.
  */
-.hero-skills:not(:hover):not(:focus-within) .hero-skill_panel:nth-child(3) {
-  flex-grow: 6;
+@media (hover: hover) {
+  .hero-skills:not(:hover):not(:has(:focus-visible))
+    .hero-skill_panel:nth-child(3) {
+    flex-grow: 6;
+  }
+
+  .hero-skills:not(:hover):not(:has(:focus-visible))
+    .hero-skill_panel:nth-child(3)
+    .hero-skill_caption {
+    opacity: 1;
+    transform: none;
+  }
+
+  .hero-skill_panel:hover,
+  .hero-skills:not(:hover) .hero-skill_panel:focus-visible {
+    flex-grow: 6;
+  }
+
+  .hero-skill_panel:hover .hero-skill_caption,
+  .hero-skills:not(:hover) .hero-skill_panel:focus-visible .hero-skill_caption {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.hero-skills:not(:hover):not(:focus-within)
-  .hero-skill_panel:nth-child(3)
-  .hero-skill_caption {
-  opacity: 1;
-  transform: none;
-}
+/* ------------------------------------------------------------- touch --- */
 
 /*
- * Hover wins whenever the pointer is over the row; focus is only the fallback
- * for when it is not. Without the :not(:hover) guard, clicking a panel leaves
- * it focused and therefore open, so hovering a second one shows two at once.
- * This also makes click behave as "pin": it stays open once the pointer leaves.
+ * No hover to rely on, and a tap does NOT match :focus-visible — so here plain
+ * :focus is the only thing that can open a panel. Tapping a second one moves
+ * focus, so only one stays open; tapping outside the row closes back to rest.
  */
-.hero-skill_panel:hover,
-.hero-skills:not(:hover) .hero-skill_panel:focus {
-  flex-grow: 6;
-}
+@media (hover: none) {
+  .hero-skills:not(:has(:focus)) .hero-skill_panel:nth-child(3) {
+    flex-grow: 6;
+  }
 
-.hero-skill_panel:hover .hero-skill_caption,
-.hero-skills:not(:hover) .hero-skill_panel:focus .hero-skill_caption {
-  opacity: 1;
-  transform: none;
+  .hero-skills:not(:has(:focus))
+    .hero-skill_panel:nth-child(3)
+    .hero-skill_caption {
+    opacity: 1;
+    transform: none;
+  }
+
+  .hero-skill_panel:focus {
+    flex-grow: 6;
+  }
+
+  .hero-skill_panel:focus .hero-skill_caption {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ------------------------------------------------------------- focus --- */
 
 /*
- * Inset rather than offset: the panel is overflow:hidden, so a positive
- * outline-offset would be clipped away and leave no visible ring at all.
+ * Inset rather than offset: a positive outline-offset would sit outside the
+ * capsule the image draws and read as a detached rectangle.
  */
 .hero-skill_panel:focus-visible {
   outline: 2px solid var(--border--accent, #4ca077);

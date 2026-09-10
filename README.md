@@ -392,9 +392,22 @@ not if the animation were GSAP-driven.
 
 **They are `<button>`, not links or divs.** The badge names a skill, so that content
 has to be reachable without a mouse. A div is not focusable and a phone has no
-hover, which would have left seven of eight skills unreadable. Expansion keys off
-`:focus` rather than `:focus-visible` so a tap opens a panel; the visible ring
-stays on `:focus-visible` so pointer users never get an outline.
+hover, which would have left seven of eight skills unreadable.
+
+**Behaviour is split by input mode**, because the two want different triggers:
+
+| | Pointer (`hover: hover`) | Touch (`hover: none`) |
+|---|---|---|
+| Opens a panel | `:hover`, `:focus-visible` | `:focus` |
+| Mouse click | **nothing** — cannot pin one open | n/a |
+| Rest state | `:not(:hover):not(:has(:focus-visible))` | `:not(:has(:focus))` |
+
+A mouse click focuses a button, so keying off plain `:focus` on desktop left the
+clicked panel open while the pointer moved on — two at once. `:focus-visible`
+does not match a click, which is exactly the distinction needed. The row-level
+`:not(:hover)` guard means hover always beats a lingering keyboard focus.
+
+Uses `:has()` (Chrome 105+, Safari 15.4+, Firefox 121+).
 
 ### Markup contract
 
