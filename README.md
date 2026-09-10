@@ -16,6 +16,7 @@ fly, so the source stays readable here and ships small.
 | `src/local-time.js` | Renders a clock for a fixed timezone, so the page shows Katie's local time rather than the visitor's. No dependencies. | `/new-home` hero |
 | `src/copy-email.js` | Copies an email to the clipboard and flips the button into a copied state. No dependencies. | Site-wide |
 | `src/copy-email.css` | Hover, focus and copied states for that button. | Site-wide |
+| `src/expanding-panels.css` | Expand-on-hover/focus behaviour for the hero panel row. No JS. | `/new-home` hero |
 | `src/reset.css` | Global reset, base styles and Client-First-style utilities. | Site-wide |
 
 ## Adding CSS to Webflow
@@ -375,6 +376,71 @@ Output is lowercased to match the site's all-lowercase brand treatment.
 - An unusable `data-timezone` throws a `RangeError`; the script warns and leaves
   the markup's own text in place rather than replacing a sensible fallback with
   something broken.
+
+## expanding-panels
+
+A row of image panels that expand on hover or keyboard focus while the others
+compress. Modelled on the BYQ Supply "Expanding Image Panels" gem, rebuilt rather
+than ported.
+
+**There is no JavaScript, deliberately.** The gem ships a script because it built
+the panels as an ARIA `tablist`, and tabs require roving tabindex plus arrow-key
+handling. Built as plain links instead, `:hover` and `:focus-visible` do the
+whole job, Tab already moves between them in the right order, and the global
+`prefers-reduced-motion` guard in `reset.css` applies for free — which it could
+not if the animation were GSAP-driven.
+
+### Markup contract
+
+```
+div.work-panels
+└ a.work-panels_panel              ← one per project
+  ├ img.work-panels_image
+  ├ div.work-panels_scrim           ← aria-hidden="true"
+  └ div.work-panels_caption
+    ├ div.work-panels_eyebrow
+    └ div.work-panels_title
+```
+
+Structural styles (flex basis, sizing, colour, type) live in the Webflow
+Designer. This stylesheet holds only what the Designer cannot author: descendant
+combinators and `:focus-visible`.
+
+### How the rest state works
+
+The first panel sits open until someone interacts with the row:
+
+```css
+.work-panels:not(:hover):not(:focus-within) .work-panels_panel:first-child { flex-grow: 6; }
+```
+
+`:not(:hover):not(:focus-within)` *is* "nothing is being pointed at or tabbed
+into". Expressing it that way avoids both the specificity fight you get from
+overriding an `.is-active` class and the JavaScript that would otherwise have to
+maintain that state.
+
+### Tuning
+
+`flex-grow` on the open panel sets how hard it dominates. With **n** panels the
+open one takes `grow / (n - 1 + grow)` of the row:
+
+| Panels | grow | Open | Each closed |
+|---|---|---|---|
+| 5 | 5.2 | 56% | 11% |
+| 8 | 5.2 | 43% | 8.2% |
+| **8** | **6** | **46%** | **7.7%** |
+
+Below roughly 1280px the closed slivers get too narrow to read at eight panels —
+that is the point to drop to five or six per breakpoint.
+
+### Things to watch
+
+- **This transitions `flex-grow`, which is a layout property.** That is the
+  technique, but it is also what the house guidelines warn about under "never
+  transition all". At eight panels it is fine; at thirty it would not be.
+- The focus outline is **inset** (`outline-offset: -2px`). The panel is
+  `overflow: hidden`, so a positive offset gets clipped and leaves no visible
+  ring at all.
 
 ## Migration from Slater
 

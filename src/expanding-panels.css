@@ -1,0 +1,101 @@
+/**
+ * expanding-panels.css — expand behaviour for the hero panel row.
+ *
+ * Pairs with the .work-panels markup built in the Webflow Designer. Structural
+ * styles (flex basis, sizing, colour, type) live in Webflow where they are
+ * editable; this file holds only what the Designer cannot express — descendant
+ * combinators and :focus-visible.
+ *
+ * There is deliberately no JavaScript. The BYQ gem this is modelled on ships a
+ * script because it built the panels as an ARIA tablist, which needs roving
+ * tabindex and arrow keys. Built as links instead, :hover and :focus-visible do
+ * the whole job, Tab already moves between them correctly, and the global
+ * prefers-reduced-motion guard in reset.css applies for free — which it could
+ * not do if this were driven by GSAP.
+ *
+ * Markup contract:
+ *   .work-panels
+ *   └ a.work-panels_panel            ← one per project
+ *     ├ img.work-panels_image
+ *     ├ div.work-panels_scrim         ← aria-hidden
+ *     └ div.work-panels_caption
+ *       ├ div.work-panels_eyebrow
+ *       └ div.work-panels_title
+ */
+
+/* --------------------------------------------------------- rest state --- */
+
+.work-panels_panel {
+  transition: flex-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.work-panels_image {
+  filter: grayscale(1) brightness(0.85);
+  transition: filter 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.work-panels_caption {
+  opacity: 0;
+  transform: translateY(0.5rem);
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.work-panels_scrim {
+  background-image: linear-gradient(
+    to top,
+    rgba(13, 24, 38, 0.78) 0%,
+    rgba(13, 24, 38, 0) 58%
+  );
+}
+
+/* ------------------------------------------------------- opened panel --- */
+
+/*
+ * The first panel is open until someone points at or tabs into the row.
+ * :not(:hover):not(:focus-within) IS "nothing is being interacted with", which
+ * avoids the specificity fight you get from overriding an .is-active class and
+ * means no JavaScript has to maintain that state.
+ */
+.work-panels:not(:hover):not(:focus-within) .work-panels_panel:first-child {
+  flex-grow: 6;
+}
+
+.work-panels:not(:hover):not(:focus-within)
+  .work-panels_panel:first-child
+  .work-panels_image {
+  filter: none;
+}
+
+.work-panels:not(:hover):not(:focus-within)
+  .work-panels_panel:first-child
+  .work-panels_caption {
+  opacity: 1;
+  transform: none;
+}
+
+.work-panels_panel:hover,
+.work-panels_panel:focus-visible {
+  flex-grow: 6;
+}
+
+.work-panels_panel:hover .work-panels_image,
+.work-panels_panel:focus-visible .work-panels_image {
+  filter: none;
+}
+
+.work-panels_panel:hover .work-panels_caption,
+.work-panels_panel:focus-visible .work-panels_caption {
+  opacity: 1;
+  transform: none;
+}
+
+/* ------------------------------------------------------------- focus --- */
+
+/*
+ * Inset rather than offset: the panel is overflow:hidden, so a positive
+ * outline-offset would be clipped away and leave no visible ring at all.
+ */
+.work-panels_panel:focus-visible {
+  outline: 2px solid var(--border--accent, #4ca077);
+  outline-offset: -2px;
+}
