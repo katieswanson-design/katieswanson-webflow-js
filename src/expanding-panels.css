@@ -17,21 +17,14 @@
  *   .work-panels
  *   └ a.work-panels_panel            ← one per project
  *     ├ img.work-panels_image
- *     ├ div.work-panels_scrim         ← aria-hidden
  *     └ div.work-panels_caption
- *       ├ div.work-panels_eyebrow
- *       └ div.work-panels_title
+ *       └ div.work-panels_title      ← rendered as a badge
  */
 
 /* --------------------------------------------------------- rest state --- */
 
 .work-panels_panel {
   transition: flex-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.work-panels_image {
-  filter: grayscale(1) brightness(0.85);
-  transition: filter 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .work-panels_caption {
@@ -54,12 +47,6 @@
 
 .work-panels:not(:hover):not(:focus-within)
   .work-panels_panel:nth-child(3)
-  .work-panels_image {
-  filter: none;
-}
-
-.work-panels:not(:hover):not(:focus-within)
-  .work-panels_panel:nth-child(3)
   .work-panels_caption {
   opacity: 1;
   transform: none;
@@ -68,11 +55,6 @@
 .work-panels_panel:hover,
 .work-panels_panel:focus-visible {
   flex-grow: 6;
-}
-
-.work-panels_panel:hover .work-panels_image,
-.work-panels_panel:focus-visible .work-panels_image {
-  filter: none;
 }
 
 .work-panels_panel:hover .work-panels_caption,
