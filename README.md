@@ -19,6 +19,8 @@ fly, so the source stays readable here and ships small.
 | `src/expanding-panels.css` | Expand-on-hover/focus behaviour for the hero panel row. No JS. | `/new-home` hero |
 | `src/site-nav.js` | Publishes the nav's measured height and toggles hide-on-scroll. No dependencies. | Site-wide |
 | `src/site-nav.css` | Sticky behaviour and the hide transition for that nav. | Site-wide |
+| `src/hover-peek.js` | Cursor-following image preview for the article list. No dependencies. | Site-wide |
+| `src/hover-peek.css` | State transitions, input-mode and reduced-motion variants for that preview. | Site-wide |
 | `src/prefer-back.js` | Makes a back link call `history.back()` when the visitor really did come from there. | Site-wide |
 | `src/view-transition.css` | Shared-element morph from a home case study card to that case study's hero. No JS. | Site-wide |
 | `src/bunny-hls.js` | Bunny HLS background video player (Osmo resource). Requires `hls.js` first. | `/new-home` |
@@ -223,6 +225,77 @@ four hrefs have to change to `/#featured-case-studies`** — on
 to "page → section", which survives a slug change automatically, but that link
 type is not exposed through the Data API, so it has to be set by hand in the
 Designer if you want it to be self-maintaining.
+
+## hover-peek
+
+The article list on `/new-home` (`#articles`). Hovering a row floats a 16:9
+image that trails the cursor. Adapted from the BYQ Supply "Hover Peek List"
+gem, restyled onto existing site classes.
+
+### Markup contract
+
+```
+.article-list[data-hover-peek]              ← position: relative
+├ .article-list_peek[aria-hidden="true"]    ← 16:9, pointer-events: none
+│ └ img.article-list_peek-image ×N          ← stacked, order = data-peek index
+└ ul.article-list_items[role="list"]
+  └ li.article-list_row[data-peek="N"]
+    └ a.article-list_link                   ← grid: num | title | type | arrow
+      ├ span.project-number[aria-hidden]
+      ├ span.project-title
+      ├ span.project-type
+      └ span.article-list_arrow[aria-hidden]
+```
+
+`data-peek` is the index into the image stack. **Adding a row means adding a
+matching image** in the same order — they are paired by position, not by name.
+
+`role="list"` is deliberate: `list-style: none` makes Safari drop list
+semantics, so the row count stops being announced without it.
+
+### Three shared classes
+
+`.project-number`, `.project-title` and `.project-type` are reused from the
+featured projects section, so the two lists stay typographically identical.
+Because they are shared, **every rule in `hover-peek.css` that touches them is
+scoped under `.article-list_link`** — an unscoped `.project-title` rule would
+reach into the projects grid.
+
+The row is laid out as a grid (`auto minmax(0, 1fr) auto auto`) rather than by
+styling the four children, for the same reason: the grid belongs to this
+component, the type styles belong to both.
+
+### Input modes
+
+| | behaviour |
+|---|---|
+| mouse / fine pointer | box trails the cursor, tilts with horizontal velocity |
+| keyboard focus | box pins beside the focused row, no chase |
+| touch / coarse pointer | peek container is `display: none` |
+
+Hiding the container on touch also means its lazy images are **never fetched**
+there, so a phone pays nothing for a feature it cannot use.
+
+Keyboard focus showing the preview is deliberate. The image is decorative and
+the container is `aria-hidden`, so it adds nothing to the accessible name — it
+just stops tabbing through the list from being a visually degraded version of
+mousing through it.
+
+### Reduced motion
+
+The variant **keeps the preview** — it is the component — and drops only the
+motion that exists for its own sake: the cursor chase, the tilt, and the scale
+settle. The box pins beside the row instead. `reset.css` collapses the
+transition durations on top of that.
+
+### Tunables
+
+Attributes on `[data-hover-peek]`:
+
+| Attribute | Default | Effect |
+|---|---|---|
+| `data-peek-tilt` | `6` | Max rotation in degrees, driven by pointer velocity. `0` disables tilt. |
+| `data-peek-ease` | `0.16` | Fraction of the gap to the cursor closed per frame. Lower trails further behind. |
 
 ## Releasing a change
 

@@ -1,0 +1,114 @@
+/**
+ * hover-peek.css — cursor-following image preview for the article list.
+ *
+ * Structural styles (grid, sizing, the 16:9 peek box, the row divider) live in
+ * the Designer. This file holds only what the Designer cannot author: the
+ * custom-property transform, the state transitions, and the input-mode and
+ * reduced-motion variants.
+ *
+ * Pairs with src/hover-peek.js, which writes --px / --py / --tilt and toggles
+ * the two state classes.
+ *
+ * Markup contract:
+ *   .article-list[data-hover-peek]
+ *   ├ .article-list_peek[aria-hidden]      ← 16:9, one image per row, stacked
+ *   │ └ img.article-list_peek-image ×N
+ *   └ ul.article-list_items[role="list"]
+ *     └ li.article-list_row[data-peek="N"] ← index matches image order
+ *       └ a.article-list_link
+ *
+ * Loaded site-wide via a <link> in Site settings → Custom code → Head.
+ */
+
+/* ----------------------------------------------------------- THE PEEK ---
+ * --px / --py are the pointer position relative to the list. The -50% pulls
+ * the box back onto the cursor rather than hanging off its bottom-right.
+ */
+
+.article-list_peek {
+  transform: translate3d(calc(var(--px, 0px) - 50%), calc(var(--py, 0px) - 50%), 0)
+    rotate(var(--tilt, 0deg)) scale(var(--peek-scale, 0.92));
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.article-list.is-peeking .article-list_peek {
+  opacity: 1;
+  --peek-scale: 1;
+}
+
+.article-list_peek-image {
+  transform: scale(1.08);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.article-list_peek-image.is-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ---------------------------------------------------------- THE ROWS ---
+ * Scoped under .article-list_link on purpose: .project-title, .project-number
+ * and .project-type are shared with the featured projects section, and must
+ * not pick up list behaviour there.
+ */
+
+.article-list_link .project-title,
+.article-list_link .article-list_arrow {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.article-list_link:hover .project-title,
+.article-list_link:focus-visible .project-title {
+  transform: translateX(0.75rem);
+}
+
+.article-list_link:hover .article-list_arrow,
+.article-list_link:focus-visible .article-list_arrow {
+  transform: translateX(0.35rem);
+}
+
+.article-list_link:focus-visible {
+  outline: 2px solid var(--border--accent, #4ca077);
+  outline-offset: 4px;
+}
+
+/* --------------------------------------------------------- NO HOVER ---
+ * A cursor-following preview has no meaning without a cursor. Hiding the
+ * container also stops its lazy images from ever being fetched, so phones
+ * pay nothing for a feature they cannot use.
+ */
+
+@media (hover: none), (pointer: coarse) {
+  .article-list_peek {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------- REDUCED MOTION ---
+ * The variant keeps the preview — it is the point of the component — but
+ * drops the parts that are motion for its own sake: the cursor chase, the
+ * tilt, and the scale settle. hover-peek.js stops writing --px/--py and pins
+ * the box beside the focused row instead.
+ *
+ * reset.css already collapses the transition durations globally.
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  .article-list_peek {
+    --tilt: 0deg;
+    --peek-scale: 1;
+  }
+
+  .article-list_peek-image {
+    transform: none;
+  }
+
+  .article-list_link:hover .project-title,
+  .article-list_link:focus-visible .project-title,
+  .article-list_link:hover .article-list_arrow,
+  .article-list_link:focus-visible .article-list_arrow {
+    transform: none;
+  }
+}
