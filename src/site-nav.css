@@ -1,0 +1,50 @@
+/**
+ * site-nav.css — sticky behaviour and the hide-on-scroll transition.
+ *
+ * Pairs with src/site-nav.js, which only toggles [data-nav-hidden] and
+ * publishes --site-nav-height. All movement lives here so the global
+ * prefers-reduced-motion guard in reset.css applies to it.
+ *
+ * Structural styles (layout, padding, colour) stay in the Webflow Designer.
+ */
+
+/*
+ * transform, not `top`. The usual recipe moves the bar with a negative `top`
+ * equal to its height — a hardcoded number that goes wrong the moment the nav's
+ * content changes. translateY(-100%) is always exactly its own height, and it
+ * composites rather than triggering layout on every scroll frame.
+ */
+.site-nav {
+  transition: transform 0.3s ease;
+}
+
+/*
+ * :not(:focus-within) is load-bearing, not decoration. Tabbing into a hidden
+ * nav must bring it back, or the keyboard order runs through controls that are
+ * off screen — WCAG 2.4.11 Focus Not Obscured.
+ */
+.site-nav[data-nav-hidden]:not(:focus-within) {
+  transform: translateY(-100%);
+}
+
+/*
+ * The sticky bar can land on top of whatever was just scrolled into view —
+ * an anchor target, or an element the browser scrolled to because it took
+ * focus. scroll-padding-top reserves the bar's height on every scroll-into-view
+ * the browser performs, which is the general fix for 2.4.11 rather than
+ * patching scroll-margin onto individual targets.
+ */
+html {
+  scroll-padding-top: calc(var(--site-nav-height, 7rem) + 1rem);
+}
+
+/*
+ * Under reduced motion the nav simply stays put. Collapsing the transition
+ * would still let it jump in and out, which is the surprise the setting is
+ * asking us to avoid — so suppress the hiding itself, not just its animation.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .site-nav[data-nav-hidden] {
+    transform: none;
+  }
+}

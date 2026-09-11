@@ -17,6 +17,8 @@ fly, so the source stays readable here and ships small.
 | `src/copy-email.js` | Copies an email to the clipboard and flips the button into a copied state. No dependencies. | Site-wide |
 | `src/copy-email.css` | Hover, focus and copied states for that button. | Site-wide |
 | `src/expanding-panels.css` | Expand-on-hover/focus behaviour for the hero panel row. No JS. | `/new-home` hero |
+| `src/site-nav.js` | Publishes the nav's measured height and toggles hide-on-scroll. No dependencies. | Site-wide |
+| `src/site-nav.css` | Sticky behaviour and the hide transition for that nav. | Site-wide |
 | `src/reset.css` | Global reset, base styles and Client-First-style utilities. | Site-wide |
 
 ## Adding CSS to Webflow
@@ -484,6 +486,62 @@ rather than in the Designer next to the rest of `.hero-statement`.
 - The focus outline is **inset** (`outline-offset: -2px`). The panel is
   `overflow: hidden`, so a positive offset gets clipped and leaves no visible
   ring at all.
+
+## site-nav
+
+A sticky site nav that hides when you scroll down and comes back when you scroll
+up. Extracted from what was `.hero_top`.
+
+### Markup contract
+
+```
+<div data-site-nav class="site-nav">      ← must be a child of <body>
+  ├ div.site-nav_bio                       logo lockup, role cycle
+  └ div.site-nav_contact                   contact pill + time/location
+```
+
+**It has to be a child of `<body>`, not of `.hero`.** `.hero` sets
+`overflow: hidden`, which makes it the sticky containing block — the nav would
+stick only while the hero is on screen and then scroll away with it.
+
+### Tunables
+
+| Attribute | Default | Effect |
+|---|---|---|
+| `data-nav-hide-after` | `120` | px of scroll before hiding is allowed |
+| `data-nav-threshold` | `6` | px of movement before it reacts |
+
+### How it is split
+
+The script only toggles `[data-nav-hidden]` and publishes `--site-nav-height`.
+Every bit of movement is a CSS transition in `site-nav.css`.
+
+That split is the point: because the motion is CSS, the global
+`prefers-reduced-motion` guard in `reset.css` reaches it. Animating from
+JavaScript — as the common recipe does — puts it beyond that guard's reach, the
+same way GSAP is.
+
+### Notes
+
+- **`transform: translateY(-100%)`, not a negative `top`.** The usual recipe
+  offsets by the bar's height as a hardcoded number; this nav's height is
+  content-driven. A transform is always exactly its own height, and it
+  composites instead of triggering layout on every scroll frame.
+- **`--site-nav-height` is measured, not assumed.** The hero sizes itself with
+  `calc(100vh - var(--site-nav-height))` so the first screen fits exactly. A
+  `ResizeObserver` keeps it current across breakpoints and copy changes; `7rem`
+  is the pre-JS fallback, close enough to avoid a layout shift.
+- **`:not(:focus-within)` on the hidden state** brings the nav back when you Tab
+  into it. Without it the tab order runs through off-screen controls —
+  [WCAG 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum).
+- **`scroll-padding-top` on `html`** stops the bar landing on top of anchor
+  targets and elements the browser scrolls to on focus. One rule, rather than
+  `scroll-margin` on every target.
+- **Under reduced motion the nav never hides at all.** Collapsing the transition
+  would still let it jump in and out; suppressing the hiding is the honest read
+  of the setting.
+- Scroll handling is rAF-throttled and `passive`, with a threshold so trackpad
+  noise cannot flip the state.
 
 ## Migration from Slater
 
