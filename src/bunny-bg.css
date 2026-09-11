@@ -1,0 +1,69 @@
+/**
+ * bunny-bg.css — state styling for the Bunny HLS background video player.
+ *
+ * Migrated verbatim from Slater 51417.css (2026-09-11). Rules are byte-for-byte
+ * the "Webflow Custom CSS" block shipped with the Osmo Supply resource
+ * "Bunny HLS Background Video" — only whitespace and comments differ.
+ * https://www.osmo.supply/resource/bunny-hls-background-video
+ *
+ * These are the attribute-driven state rules only. Everything structural
+ * (.bunny-bg, .bunny-bg__video, .bunny-bg__placeholder, .bunny-bg__loading,
+ * .bunny-bg__playpause, .bunny-bg__btn) is authored as classes in the Designer
+ * and is NOT duplicated here.
+ *
+ * Loaded site-wide via a <link> in Site settings → Custom code → Head.
+ *
+ * Markup contract:
+ *   .bunny-bg[data-bunny-background-init][data-player-src="…m3u8"]
+ *     video.bunny-bg__video
+ *     img.bunny-bg__placeholder
+ *     [data-player-control="playpause"].bunny-bg__playpause   ← see note below
+ *     .bunny-bg__loading
+ *
+ * data-player-status is written by the player script and cycles through
+ * idle → ready → loading → playing → paused. data-player-activated flips to
+ * "true" after the first play and back to "false" on ended.
+ *
+ * NOTE: as of this migration no player script is registered on the site, so
+ * these selectors never match anything but the initial `idle` state. See the
+ * README for what is still missing.
+ */
+
+/* ------------------------------------------------------------ ANIMATION --- */
+
+[data-bunny-background-init] :is(.bunny-bg__placeholder, .bunny-bg__loading) {
+  transition: opacity 0.3s linear, visibility 0.3s linear;
+}
+
+/* ---------------------------------------------------------- PLACEHOLDER ---
+ * The poster image covers the video until playback actually starts, and comes
+ * back on pause. `activated + ready` hides it once the stream is primed.
+ */
+
+[data-bunny-background-init][data-player-status="playing"] .bunny-bg__placeholder,
+[data-bunny-background-init][data-player-status="paused"] .bunny-bg__placeholder,
+[data-bunny-background-init][data-player-activated="true"][data-player-status="ready"] .bunny-bg__placeholder {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* ----------------------------------------------------------- PLAY/PAUSE ---
+ * One button, two icons — whichever icon represents the *next* action shows.
+ */
+
+[data-bunny-background-init][data-player-status="playing"] .bunny-bg__play-svg,
+[data-bunny-background-init][data-player-status="loading"] .bunny-bg__play-svg {
+  display: none;
+}
+
+[data-bunny-background-init][data-player-status="playing"] .bunny-bg__pause-svg,
+[data-bunny-background-init][data-player-status="loading"] .bunny-bg__pause-svg {
+  display: block;
+}
+
+/* -------------------------------------------------------------- LOADING --- */
+
+[data-bunny-background-init][data-player-status="loading"] .bunny-bg__loading {
+  opacity: 1;
+  visibility: visible;
+}

@@ -19,6 +19,7 @@ fly, so the source stays readable here and ships small.
 | `src/expanding-panels.css` | Expand-on-hover/focus behaviour for the hero panel row. No JS. | `/new-home` hero |
 | `src/site-nav.js` | Publishes the nav's measured height and toggles hide-on-scroll. No dependencies. | Site-wide |
 | `src/site-nav.css` | Sticky behaviour and the hide transition for that nav. | Site-wide |
+| `src/bunny-bg.css` | Status styling for the Bunny HLS background video player. Structural styles stay in the Designer. | Site-wide |
 | `src/reset.css` | Global reset, base styles and Client-First-style utilities. | Site-wide |
 
 ## Adding CSS to Webflow
@@ -57,6 +58,73 @@ Currently registered on the site:
 | `GSAP core` | 3.15.0 | `/new-home`, footer (must load first) |
 | `text cycle` | 1.0.0 | `/new-home`, footer |
 | `copy email` | 1.0.0 | Site-wide, footer |
+
+## bunny-bg
+
+State styling for the [Osmo Supply "Bunny HLS Background
+Video"](https://www.osmo.supply/resource/bunny-hls-background-video) resource.
+`src/bunny-bg.css` is the resource's *Webflow Custom CSS* block, migrated
+verbatim from Slater `51417.css` on 2026-09-11.
+
+Only the attribute-driven state rules live here. Everything structural is
+authored as classes in the Designer and is deliberately **not** duplicated in
+this repo — two sources of truth for the same box is how they drift.
+
+### Markup contract
+
+```
+div.bunny-bg[data-bunny-background-init][data-player-src="…playlist.m3u8"]
+├ video.bunny-bg__video
+├ img.bunny-bg__placeholder                    ← poster, covers until playback
+├ div.bunny-bg__playpause                      ← [data-player-control="playpause"]
+│ └ div.bunny-bg__btn                            .bunny-bg__pause-svg + __play-svg
+└ div.bunny-bg__loading
+```
+
+`data-player-status` is written by the player script and cycles
+`idle → ready → loading → playing → paused`. `data-player-activated` flips to
+`true` on first play and back to `false` on `ended`. Neither is ever set by
+hand.
+
+### The player script is not installed
+
+**As of this migration nothing on the site attaches the HLS stream.** There is
+no `hls.js` and no `initBunnyPlayerBackground` — not registered, not applied,
+not in any page's freeform code. The `<video>` has no `src`, so it never plays
+and `data-player-status` never leaves `idle`; what renders is
+`.bunny-bg__placeholder` alone. Every selector in `bunny-bg.css` is inert until
+that changes.
+
+Wiring it up needs three things, none of which are done:
+
+1. `hls.js` registered as a hosted script (Safari/iOS play HLS natively, every
+   other browser needs it).
+2. `initBunnyPlayerBackground` as a second registered script, after it.
+3. A `.bunny-bg__playpause` element in the markup — see below.
+
+### Pause control (WCAG 2.2.2)
+
+The player on `/new-home` carries `data-player-autoplay="true"`, which forces
+`muted` + `loop`, and its markup has **no `.bunny-bg__playpause` element**. A
+muted looping background video is allowed to autoplay, but motion running past
+five seconds alongside other content has to offer pause, stop, or hide —
+[WCAG 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide).
+
+So the control has to exist before the script is switched on, or turning the
+player on introduces a failure that isn't there today.
+
+Two further gaps to close at the same time:
+
+- **The control needs to be a real `<button>`.** Osmo ships a `div`, which is
+  unreachable by keyboard and unannounced by a screen reader. Its accessible
+  name should flip between "pause background video" and "play background video"
+  as `data-player-status` changes.
+- **The loading spinner ignores reduced motion.** It animates through SVG SMIL
+  (`<animateTransform repeatCount="indefinite">`), and the global guard in
+  `reset.css` only reaches CSS animations and transitions — `animation-duration`
+  has no effect on SMIL. Under `prefers-reduced-motion: reduce` the spinner
+  should be swapped for a static indicator, and autoplay should not start on its
+  own.
 
 ## Releasing a change
 
