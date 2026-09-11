@@ -19,6 +19,8 @@ fly, so the source stays readable here and ships small.
 | `src/expanding-panels.css` | Expand-on-hover/focus behaviour for the hero panel row. No JS. | `/new-home` hero |
 | `src/site-nav.js` | Publishes the nav's measured height and toggles hide-on-scroll. No dependencies. | Site-wide |
 | `src/site-nav.css` | Sticky behaviour and the hide transition for that nav. | Site-wide |
+| `src/bunny-hls.js` | Bunny HLS background video player (Osmo resource). Requires `hls.js` first. | `/new-home` |
+| `src/case-study.css` | One `max-width: 1200px` grid correction Webflow's breakpoints can't express. | Case study pages |
 | `src/bunny-bg.css` | Status styling for the Bunny HLS background video player. Structural styles stay in the Designer. | Site-wide |
 | `src/reset.css` | Global reset, base styles and Client-First-style utilities. | Site-wide |
 
@@ -86,39 +88,44 @@ div.bunny-bg[data-bunny-background-init][data-player-src="…playlist.m3u8"]
 `true` on first play and back to `false` on `ended`. Neither is ever set by
 hand.
 
-### The player script is not installed
+### Load order
 
-**As of this migration nothing on the site attaches the HLS stream.** There is
-no `hls.js` and no `initBunnyPlayerBackground` — not registered, not applied,
-not in any page's freeform code. The `<video>` has no `src`, so it never plays
-and `data-player-status` never leaves `idle`; what renders is
-`.bunny-bg__placeholder` alone. Every selector in `bunny-bg.css` is inert until
-that changes.
+`hls.js` **must load before** `src/bunny-hls.js`. Safari and iOS play HLS
+natively, so on those the player works either way — which makes a missing or
+mis-ordered `hls.js` look like a browser-specific bug rather than what it is.
+Both are registered scripts in the footer; registered scripts run in the order
+they are applied.
 
-Wiring it up needs three things, none of which are done:
+`src/bunny-hls.js` is Osmo's source form. The Slater build it replaces
+(`51416.js`) was the same code minified, with no local modifications.
 
-1. `hls.js` registered as a hosted script (Safari/iOS play HLS natively, every
-   other browser needs it).
-2. `initBunnyPlayerBackground` as a second registered script, after it.
-3. A `.bunny-bg__playpause` element in the markup — see below.
+### Pause control — open question
 
-### Pause control (WCAG 2.2.2)
+The player inside `.card-frame` on `/new-home` carries
+`data-player-autoplay="true"` and has **no `.bunny-bg__playpause` element**,
+though the `.bunny-bg__playpause` and `.bunny-bg__btn` classes are fully styled
+in the Designer.
 
-The player on `/new-home` carries `data-player-autoplay="true"`, which forces
-`muted` + `loop`, and its markup has **no `.bunny-bg__playpause` element**. A
-muted looping background video is allowed to autoplay, but motion running past
-five seconds alongside other content has to offer pause, stop, or hide —
-[WCAG 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide).
+With `autoplay` set, this script plays the video through an
+`IntersectionObserver` whenever the player is at least 10% in view, and pauses
+it when it scrolls out. That is automatic playback, not hover playback — there
+is no hover branch anywhere in the script, and neither `.card-frame` nor
+`.bunny-bg` carries a `:hover` state in the Designer.
 
-So the control has to exist before the script is switched on, or turning the
-player on introduces a failure that isn't there today.
+If the video is visible while it plays, [WCAG
+2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide) applies:
+muted looping video may autoplay, but motion running past five seconds
+alongside other content has to offer pause, stop, or hide. If an IX2
+interaction keeps it hidden until hover, it isn't presented until the user acts
+and the criterion doesn't bite. IX2 interactions are not readable through the
+Data API, so this has to be checked in the Designer.
 
-Two further gaps to close at the same time:
+If a control is needed:
 
-- **The control needs to be a real `<button>`.** Osmo ships a `div`, which is
-  unreachable by keyboard and unannounced by a screen reader. Its accessible
-  name should flip between "pause background video" and "play background video"
-  as `data-player-status` changes.
+- **Make it a real `<button>`.** Osmo ships a `div`, which is unreachable by
+  keyboard and unannounced by a screen reader. Its accessible name should flip
+  between "pause background video" and "play background video" as
+  `data-player-status` changes.
 - **The loading spinner ignores reduced motion.** It animates through SVG SMIL
   (`<animateTransform repeatCount="indefinite">`), and the global guard in
   `reset.css` only reaches CSS animations and transitions — `animation-duration`

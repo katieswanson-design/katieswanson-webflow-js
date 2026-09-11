@@ -1,0 +1,22 @@
+/**
+ * case-study.css — layout corrections for case study pages.
+ *
+ * Migrated verbatim from Slater 51768.css (2026-09-11).
+ *
+ * Loaded per-page via a <link> in each case study page's head, not site-wide —
+ * nothing outside these pages uses .solo-project.
+ *
+ * Why this can't live in the Designer: 1200px sits between Webflow's tablet
+ * breakpoint (max-width 991px) and its large breakpoint (min-width 1280px),
+ * so there is no Designer breakpoint that expresses it.
+ */
+
+@media all and (max-width: 1200px) {
+  .solo-project {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .single-project-description {
+    grid-column: span 2 !important;
+  }
+}
