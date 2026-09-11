@@ -103,10 +103,20 @@
     root.addEventListener("pointermove", function (e) {
       if (e.pointerType !== "mouse" || !fine.matches || reduce.matches) return;
       var rect = root.getBoundingClientRect();
-      targetX = e.clientX - rect.left;
+      targetX = clampX(e.clientX - rect.left, rect.width);
       targetY = e.clientY - rect.top;
       tick();
     });
+
+    // The box is centred on the cursor, so without this it hangs half its width
+    // past the list near either edge. Overflowing right widens the document and
+    // raises a horizontal scrollbar — from a decorative hover, which is not a
+    // trade worth making. Clamping costs a little cursor fidelity at the edges.
+    function clampX(px, width) {
+      var half = peek.offsetWidth / 2;
+      if (width <= peek.offsetWidth) return width / 2;
+      return Math.max(half, Math.min(width - half, px));
+    }
 
     root.addEventListener("pointerleave", function (e) {
       if (e.pointerType !== "mouse") return;
@@ -141,7 +151,7 @@
     function pinTo(row) {
       var rootRect = root.getBoundingClientRect();
       var rowRect = row.getBoundingClientRect();
-      targetX = rootRect.width - peek.offsetWidth / 2;
+      targetX = clampX(rootRect.width - peek.offsetWidth / 2, rootRect.width);
       targetY = rowRect.top - rootRect.top + rowRect.height / 2;
       x = targetX;
       y = targetY;

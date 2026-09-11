@@ -297,6 +297,19 @@ motion that exists for its own sake: the cursor chase, the tilt, and the scale
 settle. The box pins beside the row instead. `reset.css` collapses the
 transition durations on top of that.
 
+### The peek is clamped to the list
+
+It is centred on the cursor, so near either edge it would hang half its width
+outside `.article-list`. Overflowing to the right widens the document and
+raises a **horizontal scrollbar** — from a decorative hover. So the x position
+is clamped to the list's bounds; the box stops tracking the cursor in the last
+~11rem at each edge, which is a much cheaper cost.
+
+The parent `.container-medium` was `width: 96svw`, which is viewport-relative
+and therefore ignored `.section`'s padding — the container sat wider than the
+space it was in and the excess spilled right. It is `width: 100%` now, matching
+`.container`.
+
 ### Tunables
 
 Attributes on `[data-hover-peek]`:
