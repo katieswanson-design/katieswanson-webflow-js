@@ -319,6 +319,43 @@ Attributes on `[data-hover-peek]`:
 | `data-peek-tilt` | `6` | Max rotation in degrees, driven by pointer velocity. `0` disables tilt. |
 | `data-peek-ease` | `0.16` | Fraction of the gap to the cursor closed per frame. Lower trails further behind. |
 
+## copy-email
+
+A button that copies an address and flips into a copied state.
+
+```
+.copy-email-wrapper
+├ button.copy-email-button[data-copy-email]
+│ └ .copy-email-text__wrap > span.copy-email-text__el ×3
+└ .sr-only[role="status"][aria-live="polite"][data-copy-email-status]
+```
+
+### Why the live region exists
+
+The button carries an `aria-label`, and an `aria-label` **overrides the
+element's visible text**. Without help a screen reader therefore never hears
+the address, and never hears that the copy worked. Two things fix that:
+
+1. The label is composed from the address — "Copy hello@… to clipboard" —
+   so the accessible name says *which* address this copies.
+2. Success is announced through the `role="status"` live region, **not** by
+   swapping the `aria-label`. Renaming a control the user is currently focused
+   on is unreliable across screen readers and disorienting when it does land.
+
+The status node must sit **outside** the button. Inside, its text would be
+swallowed by the button's accessible name instead of being announced, and the
+`aria-label` would override it anyway.
+
+Failure is announced too — a blocked clipboard write or a non-HTTPS context
+now says so and reads the address out, instead of failing silently.
+
+### One thing deliberately removed
+
+`mouseleave` used to call `button.blur()`. That threw away focus the visitor
+had not given up: a keyboard user could lose their place because the pointer
+happened to drift across the button. The state still resets on `mouseleave`
+and on `blur`; it just no longer moves focus.
+
 ## Releasing a change
 
 Edit the file in `src/`, then:
