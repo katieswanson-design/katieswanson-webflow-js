@@ -174,15 +174,19 @@
  */
 
 /*
- * Vertical: sit directly above the panel column. Written as its own values
- * (bottom 10vh + height 40vh) plus a clearance, rather than the 50vh it
- * collapses to, so the derivation stays readable — and so it is obvious what
- * to change if the column moves.
+ * Base — applies at EVERY width. The wrapper is container-type: inline-size,
+ * which implies contain: inline-size, so it cannot size itself from its own
+ * content: if `left` is ever missing it collapses to zero width and the text
+ * spills out of the right edge. So there is always a left here, and the
+ * panel-aligned values below only override it.
+ *
+ * Vertical is written as the panel column's own values (bottom 10vh + height
+ * 40vh) plus a clearance, rather than the 50vh it collapses to, so it is
+ * obvious what to change if that column moves.
  */
-@media (min-width: 992px) {
-  .hero .hero-statement-wrapper {
-    bottom: calc(10vh + 40vh + 2rem);
-  }
+.hero .hero-statement-wrapper {
+  left: var(--_layout---site-padding--desktop);
+  bottom: calc(10vh + 40vh + 2rem);
 }
 
 /* 1440+ — eight panels, 13 shares */
