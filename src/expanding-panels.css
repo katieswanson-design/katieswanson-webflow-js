@@ -144,9 +144,14 @@
 /* ------------------------------------------- hero statement alignment --- */
 
 /*
- * Aligns .hero-statement's left edge with the left edge of the panel that is
- * open at rest (:nth-child(3)) — so two slivers and two gaps in from the row's
- * padding.
+ * Positions .hero-statement-wrapper: its left edge aligns with the panel that
+ * is open at rest (:nth-child(3)) — two slivers and two gaps in from the row's
+ * padding — and it sits directly above the panel column.
+ *
+ * The wrapper is also the query container (container-type: inline-size), so the
+ * statement's clamp(..cqi..) font-size scales with THIS column rather than the
+ * viewport. Its right edge is the row's right padding, so the container is
+ * exactly the space between the open panel's edge and the row end.
  *
  *   left = P + 2g + 2 * (row - 2P - (n-1)g) / (n - 1 + grow)
  *
@@ -168,9 +173,21 @@
  * change, these change with them.
  */
 
+/*
+ * Vertical: sit directly above the panel column. Written as its own values
+ * (bottom 10vh + height 40vh) plus a clearance, rather than the 50vh it
+ * collapses to, so the derivation stays readable — and so it is obvious what
+ * to change if the column moves.
+ */
+@media (min-width: 992px) {
+  .hero .hero-statement-wrapper {
+    bottom: calc(10vh + 40vh + 2rem);
+  }
+}
+
 /* 1440+ — eight panels, 13 shares */
 @media (min-width: 992px) {
-  .hero .hero-statement {
+  .hero .hero-statement-wrapper {
     left: calc(
       var(--_layout---site-padding--desktop) + 1rem +
         2 * (100% - 2 * var(--_layout---site-padding--desktop) - 3.5rem) / 13
@@ -180,7 +197,7 @@
 
 /* 1025-1439 — seven panels, 12 shares */
 @media (min-width: 992px) and (max-width: 1439px) {
-  .hero .hero-statement {
+  .hero .hero-statement-wrapper {
     left: calc(
       var(--_layout---site-padding--desktop) + 1rem +
         2 * (100% - 2 * var(--_layout---site-padding--desktop) - 3rem) / 12
@@ -190,7 +207,7 @@
 
 /* 992-1024 — six panels, 11 shares */
 @media (min-width: 992px) and (max-width: 1024px) {
-  .hero .hero-statement {
+  .hero .hero-statement-wrapper {
     left: calc(
       var(--_layout---site-padding--desktop) + 1rem +
         2 * (100% - 2 * var(--_layout---site-padding--desktop) - 2.5rem) / 11
