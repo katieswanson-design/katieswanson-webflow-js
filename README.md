@@ -19,6 +19,7 @@ fly, so the source stays readable here and ships small.
 | `src/expanding-panels.css` | Expand-on-hover/focus behaviour for the hero panel row. No JS. | `/new-home` hero |
 | `src/site-nav.js` | Publishes the nav's measured height and toggles hide-on-scroll. No dependencies. | Site-wide |
 | `src/site-nav.css` | Sticky behaviour and the hide transition for that nav. | Site-wide |
+| `src/view-transition.css` | Shared-element morph from a home case study card to that case study's hero. No JS. | Site-wide |
 | `src/bunny-hls.js` | Bunny HLS background video player (Osmo resource). Requires `hls.js` first. | `/new-home` |
 | `src/case-study.css` | One `max-width: 1200px` grid correction Webflow's breakpoints can't express. | Case study pages |
 | `src/bunny-bg.css` | Status styling for the Bunny HLS background video player. Structural styles stay in the Designer. | Site-wide |
@@ -135,6 +136,58 @@ If a control is needed:
   has no effect on SMIL. Under `prefers-reduced-motion: reduce` the spinner
   should be swapped for a static indicator, and autoplay should not start on its
   own.
+
+## view-transition
+
+Clicking a featured case study card morphs that card's frame into the hero
+frame on the case study page. Cross-document View Transitions, no JavaScript.
+
+### How the pairing works
+
+A `view-transition-name` has to be unique **within a document**, not across the
+site. So the home page carries all three names at once — one per card, all
+different — and each case study page carries exactly one. The browser pairs old
+to new by matching name across the navigation.
+
+The outgoing side is matched by href, the incoming side by an attribute:
+
+```css
+.project[href*="case-study-01"] .card-frame { view-transition-name: cs-01; }
+[data-vt="cs-01"]                            { view-transition-name: cs-01; }
+```
+
+`data-vt` is set on each case study page's `.card-frame.full` in the Designer's
+settings panel. **Adding a fourth case study means adding one matching pair to
+this file and setting `data-vt` on that page's frame.** Nothing else.
+
+### Why the frame, not the image
+
+The three home cards are not the same kind of thing — one holds a Bunny video,
+two hold images. Naming `.card-frame` rather than the media inside it means the
+browser morphs the *box* and cross-fades whatever is in it, so video cards and
+image cards behave identically. Naming the media directly would have made the
+video card the odd one out.
+
+The geometry already lines up: the source frame is `width: 80%` at
+`aspect-ratio: 16/9`, the destination is `width: 100%` and inherits the same
+ratio. Same shape, different size — which is exactly the case that morphs
+cleanly. The two ends use different radius tokens, so the corner radius
+animates too.
+
+### Reduced motion needs its own rule
+
+The global guard in `reset.css` **cannot reach this**. That guard sets
+`animation-duration` on `*`, and the `::view-transition-*` pseudo-elements live
+in a separate tree hanging off the root that `*` does not match. Hence the
+dedicated block at the bottom of the file. Removing it does not fall back to
+the global guard — it falls back to nothing.
+
+### Support
+
+Chrome/Edge 126+, Safari 18.2+. **Firefox does not support cross-document view
+transitions** and navigates normally; nothing breaks, the morph is simply
+absent. `navigation: auto` also applies to every other same-origin navigation
+on the site, which gives the rest of the pages a plain cross-fade.
 
 ## Releasing a change
 

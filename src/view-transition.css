@@ -1,0 +1,78 @@
+/**
+ * view-transition.css — cross-document shared-element page transitions.
+ *
+ * Clicking a featured case study card morphs that card's frame into the hero
+ * frame on the case study page, so the navigation reads as one continuous
+ * surface rather than a page swap.
+ *
+ * Loaded site-wide via a <link> in Site settings → Custom code → Head. It has
+ * to be present on BOTH the outgoing and incoming document — a cross-document
+ * transition is opted into by each page independently.
+ *
+ * No JavaScript. The pairing is declarative: the outgoing element is matched by
+ * its href, the incoming one by a data-vt attribute set in the Designer.
+ *
+ * Support: Chrome/Edge 126+, Safari 18.2+. Firefox does not support
+ * cross-document view transitions and simply navigates normally — nothing
+ * degrades, the morph is just absent.
+ */
+
+@view-transition {
+  navigation: auto;
+}
+
+/* ------------------------------------------------------------- PAIRING ---
+ * A view-transition-name must be unique within a document, not across the
+ * site. The home page carries all three names at once (one per card, all
+ * different); each case study page carries exactly one. The browser matches
+ * old to new by name across the navigation.
+ *
+ * Adding a fourth case study means adding a matching pair here and setting
+ * data-vt on that page's .card-frame.full — nothing else.
+ */
+
+.project[href*="case-study-01"] .card-frame { view-transition-name: cs-01; }
+.project[href*="case-study-02"] .card-frame { view-transition-name: cs-02; }
+.project[href*="case-study-03"] .card-frame { view-transition-name: cs-03; }
+
+[data-vt="cs-01"] { view-transition-name: cs-01; }
+[data-vt="cs-02"] { view-transition-name: cs-02; }
+[data-vt="cs-03"] { view-transition-name: cs-03; }
+
+/* The nav is identical on both ends, so let it persist instead of being
+ * cross-faded along with the rest of the root snapshot. If the nav ever
+ * behaves oddly mid-transition, this is the first line to remove. */
+.site-nav { view-transition-name: site-nav; }
+
+/* -------------------------------------------------------------- TIMING ---
+ * Matches the easing used by the hero panels so the site has one motion
+ * vocabulary. Longer than a micro-interaction on purpose: this one carries
+ * spatial meaning rather than feedback.
+ */
+
+::view-transition-group(cs-01),
+::view-transition-group(cs-02),
+::view-transition-group(cs-03) {
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-group(site-nav) {
+  animation-duration: 0.3s;
+}
+
+/* ------------------------------------------------------ REDUCED MOTION ---
+ * The global guard in reset.css cannot reach these. It sets animation-duration
+ * on `*`, and the ::view-transition-* pseudo-elements live in a separate tree
+ * off the root that `*` does not match — so they need their own rule.
+ *
+ * Killing the animations leaves the navigation instant rather than broken.
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
