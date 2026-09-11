@@ -241,17 +241,26 @@ gem, restyled onto existing site classes.
 └ ul.article-list_items[role="list"]
   └ li.article-list_row[data-peek="N"]
     └ a.article-list_link                   ← grid: num | title | type | arrow
-      ├ span.project-number[aria-hidden]
-      ├ span.project-title
-      ├ span.project-type
-      └ span.article-list_arrow[aria-hidden]
+      ├ div.project-number[aria-hidden]
+      ├ div.project-title
+      ├ div.project-type
+      └ svg.arrow-svg[aria-hidden]
 ```
+
+The row link must be a **Link Block**, not a Text Link. A Text Link cannot
+contain elements — Webflow rejects the write with *"Elements cannot be added to
+Link elements"* — so the arrow icon has nowhere to live. Building an `<a>` from
+HTML produces a Text Link, so these were created explicitly as `LinkBlock`.
 
 `data-peek` is the index into the image stack. **Adding a row means adding a
 matching image** in the same order — they are paired by position, not by name.
 
 `role="list"` is deliberate: `list-style: none` makes Safari drop list
 semantics, so the row count stops being announced without it.
+
+The arrow uses `fill="currentColor"`, so it takes the row's text colour and
+follows the light/dark modes. The site's other arrow, `.ic-arrow`, already does
+this — a hardcoded `fill` would go invisible in one mode or the other.
 
 ### Three shared classes
 

@@ -15,7 +15,8 @@
  *   │ └ img.article-list_peek-image ×N
  *   └ ul.article-list_items[role="list"]
  *     └ li.article-list_row[data-peek="N"] ← index matches image order
- *       └ a.article-list_link
+ *       └ a.article-list_link               ← Link Block, not Text Link
+ *         └ svg.arrow-svg[aria-hidden]
  *
  * Loaded site-wide via a <link> in Site settings → Custom code → Head.
  */
@@ -55,8 +56,14 @@
  */
 
 .article-list_link .project-title,
-.article-list_link .article-list_arrow {
+.article-list_link .arrow-svg {
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Layout for the icon lives here rather than on .arrow-svg, so the class stays
+ * a plain icon that can be dropped anywhere without carrying grid placement. */
+.article-list_link .arrow-svg {
+  justify-self: end;
 }
 
 .article-list_link:hover .project-title,
@@ -64,8 +71,8 @@
   transform: translateX(0.75rem);
 }
 
-.article-list_link:hover .article-list_arrow,
-.article-list_link:focus-visible .article-list_arrow {
+.article-list_link:hover .arrow-svg,
+.article-list_link:focus-visible .arrow-svg {
   transform: translateX(0.35rem);
 }
 
@@ -107,8 +114,8 @@
 
   .article-list_link:hover .project-title,
   .article-list_link:focus-visible .project-title,
-  .article-list_link:hover .article-list_arrow,
-  .article-list_link:focus-visible .article-list_arrow {
+  .article-list_link:hover .arrow-svg,
+  .article-list_link:focus-visible .arrow-svg {
     transform: none;
   }
 }
