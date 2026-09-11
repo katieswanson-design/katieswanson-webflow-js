@@ -19,6 +19,7 @@ fly, so the source stays readable here and ships small.
 | `src/expanding-panels.css` | Expand-on-hover/focus behaviour for the hero panel row. No JS. | `/new-home` hero |
 | `src/site-nav.js` | Publishes the nav's measured height and toggles hide-on-scroll. No dependencies. | Site-wide |
 | `src/site-nav.css` | Sticky behaviour and the hide transition for that nav. | Site-wide |
+| `src/prefer-back.js` | Makes a back link call `history.back()` when the visitor really did come from there. | Site-wide |
 | `src/view-transition.css` | Shared-element morph from a home case study card to that case study's hero. No JS. | Site-wide |
 | `src/bunny-hls.js` | Bunny HLS background video player (Osmo resource). Requires `hls.js` first. | `/new-home` |
 | `src/case-study.css` | One `max-width: 1200px` grid correction Webflow's breakpoints can't express. | Case study pages |
@@ -188,6 +189,40 @@ Chrome/Edge 126+, Safari 18.2+. **Firefox does not support cross-document view
 transitions** and navigates normally; nothing breaks, the morph is simply
 absent. `navigation: auto` also applies to every other same-origin navigation
 on the site, which gives the rest of the pages a plain cross-fade.
+
+## prefer-back
+
+The back button on a case study page returns to the home page at
+`#featured-case-studies`. It is a **real link with a real href** — it works
+with JavaScript disabled, with the keyboard, with middle-click, and for someone
+who arrived cold from a shared URL with no history to go back through.
+
+`src/prefer-back.js` upgrades it: if the visitor actually came from the page
+that href points at, it calls `history.back()` instead.
+
+### Why bother, when the href already works
+
+`history.back()` restores the **exact scroll offset** the visitor left from.
+Navigating forward to `/new-home#featured-case-studies` only lands on the
+section heading, which can leave the card they clicked off-screen — so the view
+transition morphs toward a position they cannot see. Going back puts the card
+exactly where it was and the morph reverses cleanly.
+
+The href stays the source of truth. If the referrer doesn't match it, the
+script does nothing and the link navigates normally.
+
+```
+<a href="/new-home#featured-case-studies" data-prefer-back> … </a>
+```
+
+### Maintenance note
+
+That href is a literal path. **When `new-home` becomes the site's `/`, these
+four hrefs have to change to `/#featured-case-studies`** — on
+`case-study-01/02/03` and on `case-study-template`. Webflow's Designer can link
+to "page → section", which survives a slug change automatically, but that link
+type is not exposed through the Data API, so it has to be set by hand in the
+Designer if you want it to be self-maintaining.
 
 ## Releasing a change
 
