@@ -99,26 +99,29 @@ they are applied.
 `src/bunny-hls.js` is Osmo's source form. The Slater build it replaces
 (`51416.js`) was the same code minified, with no local modifications.
 
-### Pause control — open question
+### Pause control — not required here
 
 The player inside `.card-frame` on `/new-home` carries
-`data-player-autoplay="true"` and has **no `.bunny-bg__playpause` element**,
-though the `.bunny-bg__playpause` and `.bunny-bg__btn` classes are fully styled
-in the Designer.
+`data-player-autoplay="true"` and has no `.bunny-bg__playpause` element, though
+the `.bunny-bg__playpause` and `.bunny-bg__btn` classes are fully styled in the
+Designer.
 
-With `autoplay` set, this script plays the video through an
-`IntersectionObserver` whenever the player is at least 10% in view, and pauses
-it when it scrolls out. That is automatic playback, not hover playback — there
-is no hover branch anywhere in the script, and neither `.card-frame` nor
-`.bunny-bg` carries a `:hover` state in the Designer.
+**This is deliberate and it is fine.** The video is decorative, and `.project`
+carries a Webflow IX2 hover interaction that reveals it. Because the video is
+not presented until the visitor hovers, it does not "start automatically" in
+the sense [WCAG 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide)
+means, and moving the pointer away is itself the stop mechanism. No pause
+control is owed.
 
-If the video is visible while it plays, [WCAG
-2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide) applies:
-muted looping video may autoplay, but motion running past five seconds
-alongside other content has to offer pause, stop, or hide. If an IX2
-interaction keeps it hidden until hover, it isn't presented until the user acts
-and the criterion doesn't bite. IX2 interactions are not readable through the
-Data API, so this has to be checked in the Designer.
+Worth knowing about the mechanism, because it is not what it looks like: the
+script has **no hover branch**. With `autoplay` set it plays through an
+`IntersectionObserver` at 10% visibility and pauses when the player scrolls
+out. The hover is IX2 revealing an element that is already playing underneath —
+two independent systems that happen to compose into one effect. If the IX2
+interaction is ever removed, the video becomes visible *and* autoplaying, and
+2.2.2 applies again.
+
+If a control is ever needed:
 
 If a control is needed:
 
