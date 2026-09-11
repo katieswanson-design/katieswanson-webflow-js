@@ -48,3 +48,51 @@ html {
     transform: none;
   }
 }
+
+/* ---------------------------------------------------------- material --- */
+
+/*
+ * A note on the name, since it will come up: this is Acrylic, not Mica.
+ *
+ * Per Microsoft's own docs, Mica "only samples the desktop wallpaper once", is
+ * opaque, and appears "on the backdrop of your application — behind all other
+ * content". It is a base layer. A sticky nav sits ON TOP of content, which in
+ * Fluent's two-layer system is Acrylic's job — and the web has no wallpaper to
+ * sample, so Mica has no source here. backdrop-filter samples what is behind,
+ * which is the live, content-derived translucency that defines Acrylic.
+ *
+ * Only applied once the bar actually overlaps something. At the top of the page
+ * it stays fully transparent, so the hero is not cut by a hairline that has
+ * nothing to separate.
+ */
+.site-nav[data-nav-scrolled] {
+  pointer-events: auto;
+  background-color: color-mix(in srgb, var(--surface--primary) 72%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border--subtle) 55%, transparent);
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+/*
+ * Fluent drops Mica and Acrylic to a solid fill when the user turns off
+ * transparency, in High Contrast, on battery saver, or on low-end hardware.
+ * The web exposes the first two; honour them the same way rather than leaving
+ * a blur that the user has asked not to see.
+ */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .site-nav[data-nav-scrolled] {
+    background-color: var(--surface--primary);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .site-nav[data-nav-scrolled] {
+    background-color: var(--surface--primary);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

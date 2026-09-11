@@ -8,7 +8,8 @@
  *   <div data-site-nav class="site-nav"> … </div>
  *
  * Pairs with src/site-nav.css, which owns all of the movement. This file only
- * toggles data-nav-hidden. That split is deliberate: because the transition is
+ * toggles two attributes: data-nav-hidden (scroll direction) and
+ * data-nav-scrolled (is the bar overlapping content yet). That split is deliberate: because the transition is
  * CSS, the global prefers-reduced-motion guard in reset.css can suppress it.
  * If the movement were animated here, that guard could not reach it.
  *
@@ -57,6 +58,18 @@
       ticking = false;
 
       var y = window.scrollY;
+
+      /*
+       * The material state has no direction, so it is evaluated before the
+       * movement threshold — otherwise a 3px nudge off the top would leave the
+       * bar transparent while it already overlaps content.
+       */
+      if (y > 0) {
+        nav.setAttribute("data-nav-scrolled", "");
+      } else {
+        nav.removeAttribute("data-nav-scrolled");
+      }
+
       var delta = y - lastY;
 
       // Leave lastY alone below the threshold so small movements accumulate
