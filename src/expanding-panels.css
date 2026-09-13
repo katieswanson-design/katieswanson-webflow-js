@@ -195,11 +195,11 @@
  * cannot size itself from its own content; the panel-aligned values below only
  * override this one.
  *
- * Vertical is no longer set here at all. The hero is a column flex container
- * with justify-content: space-between and three in-flow bands (hero_top, this
- * wrapper, hero_panels-col), so the gap above and below the statement is equal
- * by construction — and it tracks hero_top's content height, which no calc
- * could have done.
+ * Vertical placement is not set here. The hero is a column flex container and
+ * the wrapper carries margin-block: auto (Designer), so it centres itself in
+ * whatever space is left between the hero's padding edge and .hero_panels-col.
+ * That adapts to viewport height on its own, which no calc could have done —
+ * see the optical correction below for why centring alone is not enough.
  */
 .hero .hero-statement-wrapper {
   margin-left: var(--_layout---site-padding--desktop);
@@ -244,6 +244,47 @@
     max-width: calc(
       7 * (100% - 2 * var(--_layout---site-padding--desktop) - 2.5rem) / 11 + 0.5rem
     );
+  }
+}
+
+/* ------------------------------- statement optical centring --- */
+
+/*
+ * Equalises the gap ABOVE the statement (to the header) with the gap BELOW it
+ * (to the panel row). margin-block: auto already centres the wrapper exactly —
+ * but it centres against the hero's padding edge, and that edge is not where
+ * the header visually ends.
+ *
+ * .hero reserves the full --site-nav-height as padding-top so its background
+ * runs up under the sticky nav. The nav's own block padding (2rem) sits inside
+ * that height, so the nav's TEXT stops 2rem short of the padding edge, while
+ * the panel row below starts at its own top edge with nothing to spare. Perfect
+ * geometric centring therefore reads as low: measured ink-to-ink at 1440x900,
+ * 97.5px above versus 64.6px below.
+ *
+ * padding-bottom on the wrapper fixes it in layout rather than with a nudge.
+ * It makes the wrapper 2rem taller, so each auto margin shrinks by 1rem and the
+ * text rises by half the error — which is exactly the correction, because the
+ * error is split between two margins. Measured after: 81.5 / 80.6 at 1440x900,
+ * and the same 0.8-0.9px residual at 1440x1200, 1920x900, 1280x720, 1000x800.
+ * That residual is the type's own half-leading, not a layout error.
+ *
+ * A transform would have been the tempting fix. It would have shifted the ink
+ * without telling the layout, so the wrapper's box and the space it reserves
+ * would have disagreed from then on.
+ *
+ * Block padding only — the wrapper is the inline-size query container, so this
+ * does not touch the statement's cqi font-size.
+ *
+ * COUPLED to the nav's block padding. If the nav's vertical padding changes in
+ * the Designer, this changes with it.
+ *
+ * Scoped to >= 992px with the rest of the statement rules: the sub-991 layout
+ * is still an open design decision.
+ */
+@media (min-width: 992px) {
+  .hero .hero-statement-wrapper {
+    padding-bottom: 2rem;
   }
 }
 

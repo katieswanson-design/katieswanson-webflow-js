@@ -783,6 +783,26 @@ breaks rather than fitting more words per line. Measured on the published
 sandbox: 40px → 41.2px at a 1440 viewport, 47.8px → 56.2px at 1920. Pinning the
 type while the box grows means taking the font-size off `cqi`.
 
+### And it centres the statement optically, not geometrically
+
+`margin-block: auto` (set in the Designer) centres the wrapper exactly between
+the hero's padding edge and the panel row. That reads as too low, because the
+hero reserves the whole `--site-nav-height` as `padding-top` while the nav's
+text stops one block-padding (`2rem`) short of it — so the top gap inherits
+2rem of empty nav padding that the bottom gap has no equivalent for. Measured
+ink-to-ink at 1440×900: **97.5px above, 64.6px below**.
+
+The correction is `padding-bottom: 2rem` on the wrapper. It makes the box 2rem
+taller, so each auto margin gives up 1rem and the text rises by half the error —
+which is the whole error, since it was split across two margins. After:
+**81.5 / 80.6**, holding to within 0.8–0.9px at 1440×1200, 1920×900, 1280×720
+and 1000×800. That residual is the type's half-leading.
+
+Padding, not a transform: a transform moves the ink without telling the layout,
+leaving the box and the space it reserves permanently out of step. Block padding
+only, so the inline-size query container is untouched. **Coupled to the nav's
+vertical padding** — change that in the Designer and this changes with it.
+
 **This is the one rule here that is not about the panels themselves**, and it is
 coupled to them: change the gap, `flex-grow`, the panel counts or the
 default-open index, and it has to change too. That coupling is why it lives here
