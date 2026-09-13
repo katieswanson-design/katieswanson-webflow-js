@@ -64,18 +64,6 @@ input[type="file"]:focus-visible {
   color: inherit;
 }
 
-/* Transition overlay */
-.wipe-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #0d1826;
-  transform: translateX(0%);
-  z-index: 9999;
-  pointer-events: none;
-}
 
 /* Reset link and form element inheritance */
 a,

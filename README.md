@@ -756,20 +756,32 @@ open one takes `grow / (n - 1 + grow)` of the row:
 Below roughly 1280px the closed slivers get too narrow to read at eight panels —
 that is the point to drop to five or six per breakpoint.
 
-### It also positions `.hero-statement`
+### It also positions `.hero-statement-wrapper`
 
-The stylesheet sets `left` on `.hero-statement` so its left edge lines up with
-the panel that is open at rest. That edge is `padding + 2 slivers + 2 gaps`, and
-the sliver width is flex-derived — so it cannot be a fixed percentage, and it
-changes at every panel-count step.
+The stylesheet sets `margin-left` and `max-width` on `.hero-statement-wrapper`
+so the statement is pinned to the panel row behind it. Its left edge lines up
+with the panel that is open at rest — `padding + 2 slivers + 2 gaps` — and its
+right edge lands on the **right edge of the next panel along**, so the text
+spans the open panel plus the sliver after it. The sliver width is flex-derived,
+so neither value can be a fixed percentage, and both change at every
+panel-count step.
 
 ```
-left = P + 2g + 2 * (100% - 2P - (n-1)g) / (n - 1 + grow)
+margin-left = P + 2g + 2 * (100% - 2P - (n-1)g) / (n - 1 + grow)
+max-width   =     (grow + 1) * (100% - 2P - (n-1)g) / (n - 1 + grow) + g
 ```
 
-`100%` rather than `100vw` on purpose: percentages on `left` resolve against
+`margin-left` rather than `left`: the wrapper is in normal flow, not absolutely
+positioned. `100%` rather than `100vw` on purpose: percentages resolve against
 `.hero`, which excludes the scrollbar. `100vw` includes it, so the statement
 would drift by the scrollbar width whenever one is present.
+
+The wrapper is also the query container, so `max-width` is what the statement's
+`clamp(…cqi…)` font-size scales against. **Widening the span enlarges the type
+by the same ratio** — the statement re-renders larger with identical line
+breaks rather than fitting more words per line. Measured on the published
+sandbox: 40px → 41.2px at a 1440 viewport, 47.8px → 56.2px at 1920. Pinning the
+type while the box grows means taking the font-size off `cqi`.
 
 **This is the one rule here that is not about the panels themselves**, and it is
 coupled to them: change the gap, `flex-grow`, the panel counts or the

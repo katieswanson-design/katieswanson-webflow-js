@@ -148,15 +148,23 @@
  * is open at rest (:nth-child(3)) — two slivers and two gaps in from the row's
  * padding — and it sits directly above the panel column.
  *
- * max-width makes the wrapper exactly as wide as the open panel, so the
- * statement occupies the same slice the imagery does:
+ * max-width runs the wrapper from the left edge of the panel that is open at
+ * rest to the RIGHT edge of the next one along — the open panel, the gap after
+ * it, and one sliver. So the statement spans two slices rather than sitting
+ * inside the open one, and its right edge lands on a real panel edge:
  *
- *   width = grow * (100% - 2P - (n-1)g) / (n - 1 + grow)
+ *   width = (grow + 1) * (100% - 2P - (n-1)g) / (n - 1 + grow) + g
  *
  * Because the wrapper is also the query container (container-type: inline-size),
  * constraining it here means the statement's clamp(..cqi..) font-size scales
- * with the open panel itself rather than with the viewport — the type and the
- * box it aligns to move together.
+ * with that span rather than with the viewport — the type and the box it aligns
+ * to move together.
+ *
+ * SO WIDENING THE SPAN ALSO ENLARGES THE TYPE, and by the same ratio: the
+ * statement does not fit more words per line, it renders larger with the same
+ * line breaks. Measured against the published sandbox: 40px -> 41.2px at a
+ * 1440 viewport, 47.8px -> 56.2px at 1920. If the type should hold still while
+ * the box grows, the font-size has to stop reading cqi from this element.
  *
  * margin-left rather than left: the wrapper is in normal flow now, not
  * absolutely positioned.
@@ -195,7 +203,9 @@
  */
 .hero .hero-statement-wrapper {
   margin-left: var(--_layout---site-padding--desktop);
-  max-width: calc(6 * (100% - 2 * var(--_layout---site-padding--desktop) - 2.5rem) / 11);
+  max-width: calc(
+    7 * (100% - 2 * var(--_layout---site-padding--desktop) - 2.5rem) / 11 + 0.5rem
+  );
 }
 
 /* 1440+ — eight panels, 13 shares */
@@ -205,7 +215,9 @@
       var(--_layout---site-padding--desktop) + 1rem +
         2 * (100% - 2 * var(--_layout---site-padding--desktop) - 3.5rem) / 13
     );
-    max-width: calc(6 * (100% - 2 * var(--_layout---site-padding--desktop) - 3.5rem) / 13);
+    max-width: calc(
+      7 * (100% - 2 * var(--_layout---site-padding--desktop) - 3.5rem) / 13 + 0.5rem
+    );
   }
 }
 
@@ -216,7 +228,9 @@
       var(--_layout---site-padding--desktop) + 1rem +
         2 * (100% - 2 * var(--_layout---site-padding--desktop) - 3rem) / 12
     );
-    max-width: calc(6 * (100% - 2 * var(--_layout---site-padding--desktop) - 3rem) / 12);
+    max-width: calc(
+      7 * (100% - 2 * var(--_layout---site-padding--desktop) - 3rem) / 12 + 0.5rem
+    );
   }
 }
 
@@ -227,7 +241,9 @@
       var(--_layout---site-padding--desktop) + 1rem +
         2 * (100% - 2 * var(--_layout---site-padding--desktop) - 2.5rem) / 11
     );
-    max-width: calc(6 * (100% - 2 * var(--_layout---site-padding--desktop) - 2.5rem) / 11);
+    max-width: calc(
+      7 * (100% - 2 * var(--_layout---site-padding--desktop) - 2.5rem) / 11 + 0.5rem
+    );
   }
 }
 
