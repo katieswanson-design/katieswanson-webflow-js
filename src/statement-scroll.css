@@ -1,0 +1,207 @@
+/**
+ * statement-scroll.css — pill-skeleton scroll reveal for the statement section.
+ *
+ * A statement is pinned in the middle of the screen. As the visitor scrolls,
+ * a skeleton of rounded pills builds the shape of the sentence, then each pill
+ * hands off to its word: the pill fades out exactly as the text fades in.
+ *
+ * Pairs with `statement-scroll.js`, which splits the paragraph into words. The
+ * section, the stage and the type live in the Webflow Designer; this file holds
+ * only what the Designer cannot author — the scroll timeline, the per-word
+ * animation ranges, registered custom properties and the pill pseudo-element.
+ *
+ * NO JAVASCRIPT DRIVES THE MOTION. This is a CSS scroll-driven animation on a
+ * named view timeline, which matters for two reasons: GSAP's ScrollTrigger is
+ * not loaded on the site (only GSAP core is), and anything animated from JS sits
+ * outside the global prefers-reduced-motion guard in reset.css. The reference
+ * this is modelled on drives the same effect from ScrollTrigger; rebuilt, not
+ * ported.
+ *
+ * Requires CSS scroll-driven animations. Everything is inside @supports, and the
+ * UNANIMATED state is the finished state — plain white text, no pills. So a
+ * browser without support, and anyone on reduced motion, gets the sentence
+ * outright rather than an empty panel.
+ *
+ * Markup contract (after the script has run):
+ *   section.section.section-statement       ← names the view timeline
+ *   └ div.statement_stage                    position: sticky (Designer)
+ *     └ div.statement_measure                inline-size container (Designer)
+ *       └ p.statement_text[data-statement]   --n: word count
+ *         └ span.statement_word              --i: word index, ::before is the pill
+ *           └ span.statement_word-text
+ */
+
+/* ------------------------------------------------------ animated values --- */
+
+/*
+ * Registered so they can be interpolated — an unregistered custom property is a
+ * token, and animating one would snap from start to end with nothing between.
+ *
+ * They inherit so the pill (::before) and the text (a child) can both read them
+ * while both animations sit on .statement_word itself. That keeps one element
+ * owning the timeline wiring instead of three.
+ *
+ * The initial values ARE the finished state: no pill, text at full opacity. Every
+ * fallback path below resolves to exactly this.
+ */
+@property --pill-in {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --reveal {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+/* -------------------------------------------------------------- timeline --- */
+
+/*
+ * The section is taller than the viewport and the stage inside it is sticky, so
+ * the sentence holds still in the middle of the screen while the section travels.
+ *
+ * `contain` is the range that maps exactly onto that still period: it runs from
+ * the moment the section covers the viewport to the moment it stops covering it.
+ * Using it means the animation starts when the sentence stops moving and finishes
+ * when it starts moving again — the reveal never fights the scroll.
+ *
+ * No timeline-scope needed: a named view timeline is visible to the naming
+ * element's DESCENDANTS, and every word is one.
+ */
+.section-statement {
+  view-timeline-name: --statement;
+}
+
+/* ------------------------------------------------------------- the word --- */
+
+/*
+ * Word spacing is a two-part compensation, and the two halves MUST move
+ * together.
+ *
+ * Each word is padded so its pill extends past the glyphs — that padding is the
+ * pill's shape. But the words are still separated by real space characters (see
+ * statement-scroll.js for why those have to stay), so the gap between two words
+ * becomes padding + space + padding: roughly three times a normal word space.
+ * Set naively it reads as justified text full of rivers, which is what it looked
+ * like before this rule existed.
+ *
+ * Negative word-spacing pulls the space back so the GLYPH gap reads normal while
+ * the pill padding survives. What is left between two pills is s + word-spacing;
+ * what is left between two words is that plus both paddings.
+ *
+ * Measured on the published page — the natural space in this face is 0.207em:
+ *
+ *   padding      word-spacing   glyph gap        pill gap
+ *   0.26em       normal         0.726em (3.5x)   0.207em   ← the rivers
+ *   0.12em       -0.17em        0.277em (1.34x)  0.037em   pills nearly touch
+ *   0.09em       -0.12em        0.267em (1.29x)  0.087em   ← shipped
+ *
+ * The two gaps cannot be tuned independently: pill gap = glyph gap - 2 x padding.
+ * Chasing an exactly natural glyph gap closes the pill gap to nothing and the
+ * skeleton reads as one continuous bar instead of separate words.
+ *
+ * COUPLED: change the padding and this has to be retuned, or the rivers return.
+ */
+.statement_text {
+  word-spacing: -0.12em;
+}
+
+.statement_word {
+  display: inline-block;
+  position: relative;
+  padding: 0.04em 0.09em;
+}
+
+/*
+ * The pill is a pseudo-element rather than the word's own background-color,
+ * which is what the reference animates. Two reasons: fading a background to
+ * `transparent` interpolates through rgba(0,0,0,0) and greys the pill on the way
+ * out, and a separate layer lets the pill and the text cross-fade against each
+ * other instead of sharing one opacity.
+ *
+ * The product is the cross-fade: the pill is only visible once it has faded in
+ * AND while its word has not yet arrived. One expression, no second timeline.
+ */
+.statement_word::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background-color: var(--surface--inverse-raised, #1f334e);
+  opacity: calc(var(--pill-in) * (1 - var(--reveal)));
+}
+
+.statement_word-text {
+  display: inline-block;
+  opacity: var(--reveal);
+}
+
+/* ---------------------------------------------------------- choreography --- */
+
+/*
+ * Two passes over the sentence, deliberately decoupled — this is the whole
+ * character of the effect:
+ *
+ *   1. PILLS, fast and early. A short stagger so the skeleton of the whole
+ *      sentence is standing within the first third, before any word is legible.
+ *      The shape of the thought arrives before the thought.
+ *   2. WORDS, slow and even. A long stagger across the remaining travel, each
+ *      word taking over from its own pill.
+ *
+ * Running one pass with a wide overlap instead gives a travelling wave and never
+ * shows the sentence as a whole skeleton, which is the thing worth stealing from
+ * the reference.
+ *
+ * Tunables, all on .statement_text so they can be overridden per breakpoint:
+ *   --pill-span   how much of the travel the pills stagger across
+ *   --pill-len    how long one pill takes to fade in
+ *   --reveal-open where the first word starts reading
+ *   --reveal-len  how long one word takes to arrive
+ *
+ * COUPLED: --reveal-open must be >= --pill-span + --pill-len, or words start
+ * arriving before the skeleton finishes building.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .statement_text {
+      --pill-span: 18%;
+      --pill-len: 10%;
+      --reveal-open: 30%;
+      --reveal-len: 14%;
+    }
+
+    .statement_word {
+      --pill-start: calc(var(--i) * var(--pill-span) / (var(--n) - 1));
+      --reveal-start: calc(
+        var(--reveal-open) + var(--i) *
+          (100% - var(--reveal-open) - var(--reveal-len)) / (var(--n) - 1)
+      );
+
+      animation: statement-pill-in linear both, statement-reveal linear both;
+      animation-timeline: --statement, --statement;
+      animation-range:
+        contain var(--pill-start) contain calc(var(--pill-start) + var(--pill-len)),
+        contain var(--reveal-start) contain calc(var(--reveal-start) + var(--reveal-len));
+    }
+  }
+}
+
+@keyframes statement-pill-in {
+  from {
+    --pill-in: 0;
+  }
+  to {
+    --pill-in: 1;
+  }
+}
+
+@keyframes statement-reveal {
+  from {
+    --reveal: 0;
+  }
+  to {
+    --reveal: 1;
+  }
+}

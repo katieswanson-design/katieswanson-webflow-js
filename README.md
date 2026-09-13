@@ -873,6 +873,86 @@ same way GSAP is.
 - Scroll handling is rAF-throttled and `passive`, with a threshold so trackpad
   noise cannot flip the state.
 
+## statement-scroll
+
+A statement pinned mid-screen that reveals itself on scroll: a skeleton of
+rounded pills builds the shape of the sentence first, then each pill hands off to
+its word. `statement-scroll.css` + `statement-scroll.js`.
+
+Modelled on the `.copy-container` effect on paralleatech.com, rebuilt rather than
+ported — that site drives it from GSAP ScrollTrigger.
+
+### No JavaScript drives the motion
+
+The reveal is a **CSS scroll-driven animation** on a named view timeline. The
+script runs once to split the paragraph into words and then does nothing — no
+scroll listener, no rAF loop.
+
+Two reasons it is not GSAP. ScrollTrigger is not loaded on this site (only GSAP
+core), so it would mean another library on the critical path. And anything
+animated from JS sits outside the global `prefers-reduced-motion` guard in
+`reset.css`, which is the same reason `site-nav` transitions in CSS.
+
+### Markup contract
+
+```
+section.section.section-statement      ← names the view timeline
+└ div.statement_stage                   position: sticky  (Designer)
+  └ div.statement_measure               inline-size container (Designer)
+    └ p.statement_text[data-statement]  the sentence, as plain text
+```
+
+Write the sentence as ordinary text in the Designer. The script rewrites it to
+one `span.statement_word` per word, each carrying `--i`, and publishes `--n` on
+the paragraph. The CSS divides the scroll travel using both.
+
+### The fallback is the finished state
+
+Everything animated lives inside `@supports (animation-timeline: view())` and
+`@media (prefers-reduced-motion: no-preference)`, and the registered custom
+properties initialise to *revealed* — `--reveal: 1`, `--pill-in: 0`. So a browser
+without scroll-driven animations, a visitor on reduced motion, and a page where
+the script never ran all land on the same place: the sentence, plain, in full.
+There is no state in which the statement is unreadable.
+
+### Why `contain`
+
+The section is taller than the viewport with a sticky stage inside it. The
+`contain` range runs from the moment the section covers the viewport to the
+moment it stops — exactly the period the sentence is held still. The reveal
+therefore starts when the text stops moving and ends when it starts again.
+
+No `timeline-scope` is needed: a named view timeline is visible to the naming
+element's descendants, and every word is one.
+
+### Two passes, deliberately decoupled
+
+| pass | stagger | what it does |
+|---|---|---|
+| pills | short (`--pill-span`) | whole skeleton standing inside the first third |
+| words | long (`--reveal-open` → 100%) | each word takes over from its own pill |
+
+Running a single pass with a wide overlap instead gives a travelling wave and
+never shows the sentence as a complete skeleton — which is the thing worth
+taking from the reference.
+
+Tunables on `.statement_text`: `--pill-span`, `--pill-len`, `--reveal-open`,
+`--reveal-len`. **`--reveal-open` must be ≥ `--pill-span` + `--pill-len`**, or
+words start arriving before the skeleton has finished building.
+
+### Word spacing is a compensation
+
+The pill padding sits on top of the real space between words, so a naive setup
+gives a glyph gap ~3.5× normal and reads as justified text full of rivers.
+Negative `word-spacing` pulls it back. The two gaps are not independent —
+`pill gap = glyph gap - 2 × padding` — so an exactly natural glyph gap closes the
+pill gap to zero and the skeleton becomes one continuous bar. Measured values and
+the shipped numbers are in the stylesheet.
+
+The words stay separated by **real space characters**, not margins, so
+`textContent` matches what was authored and the sentence still reads correctly to
+a screen reader and copies as a sentence. Don't optimise them away.
+
 ## Migration from Slater
 
 Scripts and styles are moving out of Slater into this repo as the site is
