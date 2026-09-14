@@ -77,6 +77,10 @@
   var BOW = 0.18;        // peak curvature of that bottom edge, fraction of height
   var LINK_STAGGER = 0.08;
 
+  // Where the page content is pushed while the menu is open. Straight from the
+  // reference; tune freely, the menu covers it either way.
+  var PAGE_PUSHED = { rotation: 10, x: 300, y: 450, scale: 1.5 };
+
   function init() {
     var toggle = document.querySelector("[data-nav-toggle]");
     var panel = document.querySelector("[data-nav-menu]");
@@ -86,6 +90,7 @@
     var media = panel.querySelector("[data-nav-menu-media]");
     var links = panel.querySelectorAll(".nav-menu_link");
     var inner = panel.querySelector(".nav-menu_inner");
+    var pageMain = document.querySelector("[data-page-main]");
     var isOpen = false;
     var timeline = null;
 
@@ -166,6 +171,24 @@
       panel.style.webkitClipPath = on ? "url(#" + CLIP_ID + ")" : "";
     }
 
+    // A transform — even an identity one — makes an element a containing block
+    // for position:fixed and changes how position:sticky resolves inside it.
+    // GSAP leaves `transform: translate(0px,0px) rotate(0deg) scale(1)` behind
+    // when it animates back to zero, and `will-change: transform` does the same
+    // thing on its own. Both must be REMOVED, not zeroed, or .statement_stage
+    // and anything fixed inside the page quietly stop behaving once the menu
+    // has been opened even once.
+    function releasePage() {
+      if (!pageMain) return;
+      if (window.gsap) window.gsap.set(pageMain, { clearProps: "transform" });
+      pageMain.style.willChange = "";
+      pageMain.style.transform = "";
+    }
+
+    function lockScroll(on) {
+      document.documentElement.style.overflow = on ? "hidden" : "";
+    }
+
     /* ------------------------------------------------------------ inert --- */
 
     function setInert(on) {
@@ -188,6 +211,7 @@
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       toggle.textContent = open ? "close" : "menu";
       setInert(open);
+      lockScroll(open);
 
       if (moveFocus === false) {
         if (!open) resetLinks();
@@ -225,6 +249,7 @@
       if (reducedMotion() || !window.gsap) {
         applyClip(false);
         panel.style.overflow = "";
+        releasePage();
         progress = open ? 1 : 0;
         if (window.gsap) {
           window.gsap.set(inner, open ? SETTLED : REST);
@@ -261,7 +286,10 @@
           timeline = null;
           applyClip(false);
           panel.style.overflow = "";
-          if (!open) applyState(false);
+          if (!open) {
+            releasePage();
+            applyState(false);
+          }
         }
       });
 
@@ -277,6 +305,18 @@
 
       if (inner) {
         timeline.to(inner, gsapVars(open ? SETTLED : REST, duration), 0);
+      }
+
+      if (pageMain) {
+        pageMain.style.willChange = "transform";
+        timeline.to(pageMain, {
+          rotation: open ? PAGE_PUSHED.rotation : 0,
+          x: open ? PAGE_PUSHED.x : 0,
+          y: open ? PAGE_PUSHED.y : 0,
+          scale: open ? PAGE_PUSHED.scale : 1,
+          duration: duration,
+          ease: EASE
+        }, 0);
       }
 
       if (links.length) {
@@ -352,6 +392,7 @@
         isOpen = false;
         if (timeline) { timeline.kill(); timeline = null; }
         applyClip(false);
+        releasePage();
         progress = 0;
         applyState(false);
       });

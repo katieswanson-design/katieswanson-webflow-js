@@ -1023,6 +1023,38 @@ was simply written first.
 is three numbers recomputed each frame. Without GSAP the menu opens and closes
 unclipped, so pages that do not load GSAP degrade rather than break.
 
+### The page push, and the transform trap
+
+The page content is pushed away while the menu is open — rotated, scaled and
+translated, matching the reference. That needs a single wrapper around everything
+that is not the nav:
+
+```
+<body>
+  <nav component instance>
+  <div class="page-main" data-page-main>   <- hero, sections, footer
+```
+
+**A transform makes an element a containing block for `position: fixed`, and
+changes how `position: sticky` resolves inside it.** `.statement_stage` is
+sticky and lives in there, so this matters.
+
+The trap: GSAP does not remove a transform when it animates back to zero — it
+leaves `transform: translate(0px, 0px) rotate(0deg) scale(1)`, which is still a
+containing block. `will-change: transform` does the same on its own. So on close
+both are **removed**, not zeroed:
+
+```js
+gsap.set(pageMain, { clearProps: "transform" });
+pageMain.style.willChange = "";
+```
+
+Without that, the statement's sticky behaviour quietly breaks the first time
+anyone opens the menu, and keeps working fine in the Designer — which would make
+it very hard to find later.
+
+`PAGE_PUSHED` at the top of the file holds the offsets.
+
 ### Why the dialog is NOT aria-modal
 
 The toggle lives in `nav-top`, **outside** the panel, because the bar stays
