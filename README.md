@@ -1026,17 +1026,37 @@ Webflow exposes blending in the style panel. `blend-nav.css` holds only
 
 ```
 nav.nav-top[aria-label="primary"]
-├ a.eyebrow.nav-action            logo
-├ div.eyebrow                     tagline
-├ button.eyebrow.nav-action       mode swap
-└ button.eyebrow.nav-action       menu
+├ a.nav-label.nav-action            logo
+├ div.nav-label[data-text-cycle]    role, cycled by text-cycle.js
+├ button.nav-label.nav-action       mode swap
+└ button.nav-label.nav-action       menu
 
 div.nav-bottom
-├ div.eyebrow                     proudly neurodivergent
+├ div.nav-label                     proudly neurodivergent
 └ div.nav-meta
-  ├ div.eyebrow                   location
-  └ div.eyebrow[data-local-time]  clock
+  ├ div.nav-label                   location
+  └ div.nav-label[data-local-time]  clock
 ```
+
+### `.nav-label`, and why not `.eyebrow`
+
+An eyebrow is a kicker above a heading. None of these are that, so they do not
+take that class. `.nav-label` follows the route `.site-nav_bio` takes on
+`/new-home`: it sets the **Typography** collection to its **MONO** mode and binds
+the generic typography variables (`font-size`, `line-height`, `font-weight`,
+`letter-spacing`), so the type resolves through the token system instead of
+hardcoded values.
+
+It also hand-binds `font-family` to the `Gt Pressura Mono` primitive — and so
+does `.site-nav_bio`, for a reason worth fixing at the source: **the MONO mode
+swaps font-size but leaves font-family at the collection default**, so setting
+the mode alone does not actually produce mono type. Point `font-family` at the
+mono primitive under the MONO mode and both classes can drop the hand-binding.
+
+The role in `nav-top` carries `data-text-cycle` with an empty value, which is
+what makes `text-cycle.js` use its built-in role list — exactly as `/new-home`
+does. A non-empty value is parsed as a comma-separated list of roles, so do not
+put `true` there.
 
 `nav-bottom` is a `<div>`, not a `<nav>`. It contains no navigation — a tagline,
 a city and a clock — and a second unnamed navigation landmark would be noise in

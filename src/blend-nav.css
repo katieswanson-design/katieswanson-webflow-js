@@ -8,16 +8,29 @@
  *
  * Markup contract:
  *   nav.nav-top[aria-label]
- *   ├ a.eyebrow.nav-action            logo
- *   ├ div.eyebrow                     tagline
- *   ├ button.eyebrow.nav-action       mode swap
- *   └ button.eyebrow.nav-action       menu
+ *   ├ a.nav-label.nav-action              logo
+ *   ├ div.nav-label[data-text-cycle]      role, cycled by text-cycle.js
+ *   ├ button.nav-label.nav-action         mode swap
+ *   └ button.nav-label.nav-action         menu
  *
  *   div.nav-bottom
- *   ├ div.eyebrow                     proudly neurodivergent
+ *   ├ div.nav-label                       proudly neurodivergent
  *   └ div.nav-meta
- *     ├ div.eyebrow                   location
- *     └ div.eyebrow[data-local-time]  clock
+ *     ├ div.nav-label                     location
+ *     └ div.nav-label[data-local-time]    clock
+ *
+ * `.nav-label` is the type class, and it is NOT `.eyebrow` — an eyebrow is a
+ * kicker above a heading, which none of these are. It follows the same route
+ * `.site-nav_bio` takes on /new-home: it sets the Typography collection to its
+ * MONO mode and binds the generic typography variables, so the type comes from
+ * the token system rather than from hardcoded values.
+ *
+ * It also hand-binds font-family to the Gt Pressura Mono primitive, for the
+ * same reason `.site-nav_bio` does: the MONO mode swaps font-SIZE but leaves
+ * font-family at the collection default, so the mode alone does not actually
+ * produce mono type. Fixing that at the token level — pointing font-family at
+ * the mono primitive under the MONO mode — would let both classes drop the
+ * hand-binding.
  *
  * ---------------------------------------------------------------------------
  * HOW THE BLEND WORKS, AND WHAT BREAKS IT
