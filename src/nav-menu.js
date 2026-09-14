@@ -381,17 +381,21 @@
 
     /* ------------------------------------------------------- link hover --- */
 
+    // Only the preview image needs clearing here. Opacity on the links is owned
+    // by the open/close tweens: the exit tween lands them at 0, which IS the
+    // rest state. Clearing it reverted them to 1, so the second open slid them
+    // up with no fade at all.
     function resetLinks() {
-      Array.prototype.forEach.call(revealTargets, function (l) { l.style.opacity = ""; });
       if (media) media.style.opacity = "0";
     }
 
     function focusLink(active) {
       var instant = reducedMotion() || !window.gsap;
-      Array.prototype.forEach.call(revealTargets, function (l) {
-        // A hovered link lives inside its own reveal target, so compare by
-        // containment rather than identity or the contact block never lights up.
-        var dim = active && !(l === active || l.contains(active));
+      // Only the nav anchors dim. The contact block is a destination, not a
+      // peer of the links — dimming it made hovering a nav item look like it
+      // was switching contact off.
+      Array.prototype.forEach.call(navLinks, function (l) {
+        var dim = active && l !== active;
         if (instant) {
           l.style.opacity = dim ? "0.35" : "1";
         } else {
