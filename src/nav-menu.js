@@ -69,7 +69,7 @@
 (function () {
   "use strict";
 
-  var SWEEP = 0.85;      // seconds, whole reveal
+  var SWEEP = 1.15;      // seconds, whole reveal
   var DIAGONAL = 0.75;   // how far the bottom of the edge trails the top,
                          // as a multiple of viewport height. 1 = 45 degrees.
   var BOW_BASE = 0.12;   // edge curvature at rest, fraction of viewport width
@@ -135,8 +135,13 @@
       var diag = h * DIAGONAL;
       var bow = w * (BOW_BASE + BOW_PEAK * Math.sin(progress * Math.PI));
 
-      var start = w + diag + bow;
-      var end = -diag - bow;
+      // Travel exactly the useful range and no further. The leftmost point of
+      // the edge is always its top point, so the panel is fully hidden the
+      // moment topX reaches w, and fully revealed once botX (= topX + diag)
+      // passes 0. Starting further out than this spends real animation time
+      // moving an edge nobody can see.
+      var start = w + 1;
+      var end = -(diag + 1);
       var topX = start + progress * (end - start);
       var botX = topX + diag;
       var ctrlX = topX + diag / 2 - bow;
@@ -169,14 +174,20 @@
     /* ------------------------------------------------------------ state --- */
 
     // Everything that is true of "open" regardless of how we animated there.
-    function applyState(open) {
-      isOpen = open;
+    // moveFocus is false for the initial call only: applying the closed state
+    // at load must not pull focus to the menu button.
+    function applyState(open, moveFocus) {
       panel.style.opacity = open ? "1" : "0";
       panel.style.visibility = open ? "visible" : "hidden";
       panel.style.pointerEvents = open ? "auto" : "none";
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       toggle.textContent = open ? "close" : "menu";
       setInert(open);
+
+      if (moveFocus === false) {
+        if (!open) resetLinks();
+        return;
+      }
 
       if (open) {
         panel.focus({ preventScroll: true });
@@ -196,6 +207,11 @@
     function setOpen(open) {
       if (open === isOpen) return;
 
+      // Flip intent IMMEDIATELY, not when the animation finishes. Otherwise a
+      // click during a close is swallowed by the guard above and the menu
+      // cannot be re-opened mid-flight.
+      isOpen = open;
+
       if (timeline) {
         timeline.kill();
         timeline = null;
@@ -209,33 +225,35 @@
       }
 
       clip();
-      // The panel is present and painted for the whole animation; the clip is
-      // what makes it arrive. So state flips up front on open, and only after
-      // the edge has retreated on close.
-      if (open) {
-        drawClip(progress);
-        applyClip(true);
-        applyState(true);
-      }
 
+      // The clip must be attached for BOTH directions. It is dropped when the
+      // menu finishes opening (nothing left to clip), so closing has to put it
+      // back before tweening or the edge animates against nothing and the panel
+      // just disappears.
+      drawClip(progress);
+      applyClip(true);
+
+      // Opening: the panel is present and painted for the whole reveal, so
+      // state flips up front. Closing: state flips only once the edge has
+      // retreated, so focus does not move while the panel is still on screen.
+      if (open) applyState(true);
+
+      var target = open ? 1 : 0;
       var proxy = { p: progress };
+
       timeline = window.gsap.timeline({
         onComplete: function () {
           timeline = null;
-          if (open) {
-            // Fully revealed - drop the clip so there is no subpixel edge and
-            // nothing to recompute on resize while the menu sits open.
-            applyClip(false);
-          } else {
-            applyClip(false);
-            applyState(false);
-          }
+          applyClip(false);
+          if (!open) applyState(false);
         }
       });
 
       timeline.to(proxy, {
-        p: open ? 1 : 0,
-        duration: SWEEP * Math.abs((open ? 1 : 0) - progress),
+        p: target,
+        // Scaled by the distance actually left to travel, with a floor so an
+        // interruption near the end does not produce a zero-length tween.
+        duration: Math.max(0.2, SWEEP * Math.abs(target - progress)),
         ease: open ? "power3.out" : "power3.in",
         onUpdate: function () {
           progress = proxy.p;
@@ -294,11 +312,16 @@
     // from bfcache.
     Array.prototype.forEach.call(links, function (link) {
       link.addEventListener("click", function () {
-        if (isOpen) applyState(false);
+        if (!isOpen) return;
+        isOpen = false;
+        if (timeline) { timeline.kill(); timeline = null; }
+        applyClip(false);
+        progress = 0;
+        applyState(false);
       });
     });
 
-    applyState(false);
+    applyState(false, false);
   }
 
   if (window.Webflow) {
