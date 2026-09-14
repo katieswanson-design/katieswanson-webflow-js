@@ -1018,9 +1018,12 @@ Two fixed bars — `.nav-top` and `.nav-bottom` — that invert themselves again
 whatever is behind them using `mix-blend-mode: difference`. Built on
 `/admin/playground`. Modelled on studionamma.com.
 
-Almost all of it lives in the Designer, including the blend mode itself —
-Webflow exposes blending in the style panel. `blend-nav.css` holds only
-`:focus-visible`, which it does not.
+**It has no stylesheet in this repo.** Every part of it is authored in the
+Webflow Designer, including `mix-blend-mode` (Webflow exposes blending in the
+style panel) and the `:focus-visible` ring (Webflow's "Focused (keyboard)"
+state). An earlier version of this section shipped a `blend-nav.css` for the
+focus ring on the mistaken belief that Webflow could not express
+`:focus-visible`. It can. The file is gone.
 
 ### Markup contract
 
