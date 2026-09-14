@@ -75,6 +75,18 @@
  */
 
 /*
+ * `appearance: none` is set on `.nav-action` in the Designer, but Webflow has no
+ * field for the prefixed form and Safari before 15.4 only honours that one.
+ * Without it the native button chrome paints underneath a transparent
+ * background — and inside a difference-blended bar that chrome inverts to a
+ * solid black slab behind the label, which reads as redacted text. The Webflow
+ * canvas shows exactly that, because it renders the DOM element with UA styles.
+ */
+.nav-action {
+  -webkit-appearance: none;
+}
+
+/*
  * Inset, and drawn in currentColor so it inverts with the text it belongs to.
  * A fixed colour would blend to something unrelated against a dark backdrop —
  * the outline is inside the blended element, so it is subject to the same
