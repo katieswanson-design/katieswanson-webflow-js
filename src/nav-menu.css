@@ -1,0 +1,46 @@
+/**
+ * nav-menu.css — the two things the Webflow Designer cannot express for the
+ * full-screen menu. Everything else lives on the .nav-menu* classes in the
+ * Designer, where it belongs.
+ */
+
+/* 1 ------------------------------------------------------------------------
+ * Scroll containment.
+ *
+ * The open panel scrolls its own overflow when the links do not fit. Without
+ * this, a scroll gesture that reaches the end of the panel chains to the page
+ * behind it, which is still there — just inert. Webflow exposes `overflow` but
+ * not `overscroll-behavior`, so this one declaration has to live in a file.
+ */
+[data-nav-menu] {
+  overscroll-behavior: contain;
+}
+
+/* 2 ------------------------------------------------------------------------
+ * The curve-swipe overlay.
+ *
+ * nav-menu.js injects this element; it exists in no Webflow page, so a Webflow
+ * class for it would be applied to nothing and the next dead-style sweep would
+ * correctly remove it. Its styles therefore live here, next to the code that
+ * draws the path.
+ *
+ * The shape is a full-viewport rectangle with one curved leading edge, and the
+ * `d` attribute is recomputed every frame from the viewport size — so nothing
+ * here sets geometry beyond making the SVG fill the screen.
+ */
+.nav-menu_curve {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  visibility: hidden;
+  z-index: var(--_layout---layer--sticky);
+}
+
+/* Sweeps the inverse surface across the screen, so the wipe reads against both
+ * the page it is leaving and the panel it reveals. One token to change if the
+ * effect should be quieter. */
+.nav-menu_curve path {
+  fill: var(--surface--inverse);
+}

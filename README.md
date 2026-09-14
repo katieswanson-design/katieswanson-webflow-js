@@ -19,7 +19,9 @@ fly, so the source stays readable here and ships small.
 | `src/expanding-panels.css` | Expand-on-hover/focus behaviour for the hero panel row. No JS. | `/new-home` hero |
 | `src/hover-peek.js` | Cursor-following image preview for the article list. No dependencies. | Site-wide |
 | `src/hover-peek.css` | State transitions, input-mode and reduced-motion variants for that preview. | Site-wide |
-| `src/disclosure-a11y.js` | Removes the `aria-haspopup="menu"` Webflow's JS adds to Dropdown toggles used as accordions. Opt-in via `[data-disclosure]`. No dependencies. | Case study pages |
+| `src/disclosure-a11y.js` | Removes the `aria-haspopup="menu"` Webflow's JS adds to Dropdown toggles used as accordions. Opt-in via `[data-disclosure]`; no-ops where that attribute is absent. No dependencies. | Site-wide |
+| `src/nav-menu.js` | Full-screen menu: curve-swipe transition, focus handling, Escape, and `inert` on the page behind. GSAP core optional — degrades to an instant open. | Site-wide (the `nav` component) |
+| `src/nav-menu.css` | `overscroll-behavior` on the open panel, and the injected curve overlay. | Site-wide |
 | `src/prefer-back.js` | Two link-behaviour corrections: a back link that calls `history.back()` when the visitor really did come from there, and a skip link that actually moves focus. No dependencies. | Site-wide |
 | `src/statement-scroll.js` | Splits the statement into per-word elements so the CSS can reveal them one at a time. No dependencies. | `/new-home` |
 | `src/statement-scroll.css` | Pill-skeleton scroll reveal for that statement. CSS scroll-driven animation, no JS. | `/new-home` |
@@ -930,10 +932,11 @@ navigation menu built the same way would *want* `aria-haspopup`, and stripping
 it by class would quietly break it later. Unmarked dropdowns are left alone.
 
 The four wrappers live inside the `case study description` component, so the
-attribute is set once and reaches all three case study pages. **The
-`/case-studies/case-study-template` page still holds its own copy of the
-accordions outside that component** — if it survives, it needs the attribute
-adding by hand.
+attribute is set once and reaches all three case study pages.
+`/case-studies/case-study-template` holds its own copy of the accordions
+**outside** that component, so it was marked separately and its `aria-label`s
+set by hand. Nothing about it cascades — any future change to the accordions has
+to be made twice until the template either adopts the component or is deleted.
 
 ### The accessible name is separate, and is NOT handled here
 
@@ -954,6 +957,12 @@ Two reasons, both measured:
 
 That label is markup and belongs in the Designer. This script does not add it.
 
+### Registered as
+
+`disclosure_a11y` v1.0.60, site-level, **footer** — the same shape as
+`prefer_back`: an accessibility correction that loads everywhere and does
+nothing on pages with no `[data-disclosure]`.
+
 ### Why `Webflow.push`
 
 `aria-haspopup` is already set by the time `Webflow.push` callbacks run —
@@ -968,6 +977,92 @@ wrapping an `<h2>`, where the accessible pattern is `<h2><button>`. The heading
 is still exposed separately in the accessibility tree, so heading navigation
 works — but restructuring it would mean fighting Webflow's Dropdown, and has not
 been attempted.
+
+## nav-menu
+
+The panel is Webflow markup inside the `nav` component — a `[data-nav-menu]`
+dialog holding the links, the contact block and the media image. The script owns
+the motion, the focus handling and the toggle's state. Nothing else.
+
+### The sweep
+
+One shape crosses the viewport right to left, and the panel is swapped
+underneath it at the moment it covers the screen. The shape is a full-width
+rectangle whose **leading edge is a quadratic curve**, and the depth of that
+curve follows `sin(progress · pi)` — flat at both ends, deepest mid-travel.
+That is what makes it read as a swipe rather than a rectangle sliding past.
+
+```
+p = 0.0   spans 1440..2880   flat      off right
+p = 0.25  spans  720..2160   bulge 224 sweeping in
+p = 0.5   spans    0..1440   bulge 317 exactly covers — panel swaps here
+p = 0.75  spans -720.. 720   bulge 224 sweeping out
+p = 1.0   spans -1440..   0  flat      gone
+```
+
+Measured at 1440x900. Either side of the swap the uncovered sliver shows the old
+state before and the new state after, which is what a wipe should do.
+
+**GSAP core only.** No MorphSVG, no ScrollTrigger, no paid plugin — the path `d`
+is two numbers recomputed each frame. Without GSAP the menu still opens and
+closes, just with no sweep, so pages that do not load GSAP degrade rather than
+break.
+
+### Why the dialog is NOT aria-modal
+
+The toggle lives in `nav-top`, **outside** the panel, because the bar stays
+visible over the open menu and its label becomes "close". `aria-modal="true"`
+hides everything outside the dialog from assistive tech — which would make that
+close button unreachable. So the panel is `role="dialog"` with an accessible
+name and no `aria-modal`.
+
+Isolation comes from **`inert` on the page's other top-level sections** instead.
+Same effect, except the nav bars stay reachable, which is the entire point.
+Nothing traps Tab: with the rest of the page inert there is nowhere wrong to go,
+so the browser's own focus order is already correct.
+
+The inert pass walks `document.body.children` and skips whichever one *contains*
+the panel, so a Webflow component-instance wrapper between body and the nav root
+is fine. What it does require is that the nav and the page content are **siblings
+at body level** — if the nav ever ends up nested inside a page section, that
+section cannot be inerted without inerting the nav with it.
+
+### Focus and dismissal
+
+Focus moves to the panel itself on open, not to the first link, so the dialog
+name is announced before its contents. `tabindex="-1"` is set from the script
+rather than the Designer so the contract cannot be broken by an editing
+accident. Escape closes and returns focus to the toggle.
+
+### Reduced motion
+
+Instant open, no sweep, no fades — the unanimated state is the finished state.
+`prefers-reduced-motion` is re-read on **every** open rather than cached, so
+changing the OS setting takes effect without a reload.
+
+Animations are interruptible: hitting the toggle mid-sweep kills the running
+timeline and starts the opposite one.
+
+### Markup contract
+
+```html
+<button data-nav-toggle aria-expanded="false" aria-controls="nav-menu">menu</button>
+<div id="nav-menu" data-nav-menu role="dialog" aria-label="menu">
+  <a class="nav-menu_link">…</a>
+  <img data-nav-menu-media>        <!-- optional; fades in on link hover -->
+</div>
+```
+
+The toggle's label is swapped between "menu" and "close" by the script, so do
+not bind it to anything else.
+
+### Still to do
+
+- The media image currently has no asset and one shared image for every link.
+  Per-link images would be a `data-` attribute on each link and a swap in
+  `focusLink()`.
+- GSAP core is registered per page, not site-wide. Pages carrying the nav
+  without it get the no-sweep fallback.
 
 ## statement-scroll
 
