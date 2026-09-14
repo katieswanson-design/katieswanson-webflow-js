@@ -1,5 +1,5 @@
 /**
- * nav-menu.js — the full-screen menu, and the curve swipe that reveals it.
+ * nav-menu.js — the full-screen menu, and the diagonal edge that reveals it.
  *
  * The panel itself is Webflow markup inside the `nav` component: a
  * [data-nav-menu] dialog holding the links, the contact block and the media
@@ -7,16 +7,27 @@
  * focus handling, and the state of the toggle button.
  *
  * ------------------------------------------------------------------ motion --
- * A single shape sweeps across the viewport, right to left, and the panel is
- * swapped underneath it at the moment it covers the screen. The shape is a
- * full-width rectangle whose LEADING edge is a quadratic curve, and the depth
- * of that curve follows sin(progress · pi) — so the edge bulges hardest mid
- * travel and is flat at both ends. That is what makes it read as an organic
- * swipe rather than a rectangle sliding past.
+ * The panel is REVEALED behind a curved diagonal edge that travels across the
+ * viewport. Nothing sweeps over the top of anything — there is no coloured
+ * shape and no wipe. The edge is the boundary of an SVG clipPath applied to the
+ * panel itself, and the panel is what you see arriving.
  *
- * Only GSAP core is used. No MorphSVG, no ScrollTrigger, no paid plugin — the
- * path `d` is recomputed each frame from two numbers. If GSAP is missing the
- * menu still opens and closes, just without the sweep.
+ * The edge runs from a point on the top viewport edge to a point on the bottom
+ * edge, the bottom point trailing the top one by DIAGONAL, which is what makes
+ * it a diagonal rather than a vertical wipe. Its control point is pushed out in
+ * the direction of travel by BOW, so the edge is always bowed — never a straight
+ * line — and bows further mid-travel.
+ *
+ * Closing REVERSES the same tween rather than continuing through, so the edge
+ * retreats back along the diagonal it arrived on.
+ *
+ * An SVG <clipPath> is used rather than `clip-path: path()`. Firefox only
+ * shipped path() recently, and a clip that fails to parse leaves the menu
+ * invisible — the worst available failure. `clip-path: url()` has worked
+ * everywhere for years.
+ *
+ * Only GSAP core is used: the path `d` is recomputed each frame from three
+ * numbers. Without GSAP the menu opens and closes unclipped.
  *
  * --------------------------------------------------------------- behaviour --
  * The toggle lives in nav-top, OUTSIDE the panel, because the bar stays visible
@@ -58,8 +69,11 @@
 (function () {
   "use strict";
 
-  var SWEEP = 0.9;   // seconds, whole sweep
-  var BULGE = 0.22;  // peak curve depth, as a fraction of viewport width
+  var SWEEP = 0.85;      // seconds, whole reveal
+  var DIAGONAL = 0.75;   // how far the bottom of the edge trails the top,
+                         // as a multiple of viewport height. 1 = 45 degrees.
+  var BOW_BASE = 0.12;   // edge curvature at rest, fraction of viewport width
+  var BOW_PEAK = 0.10;   // extra curvature at mid-travel
 
   function init() {
     var toggle = document.querySelector("[data-nav-toggle]");
@@ -81,40 +95,65 @@
       return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     }
 
-    /* ------------------------------------------------------------ curve --- */
+    /* ------------------------------------------------------------- clip --- */
 
-    var svg = null;
-    var path = null;
+    var clipSvg = null;
+    var clipPath = null;
+    var CLIP_ID = "nav-menu-clip";
 
-    function curve() {
-      if (svg) return svg;
-      svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.setAttribute("class", "nav-menu_curve");
-      svg.setAttribute("aria-hidden", "true");
-      svg.setAttribute("preserveAspectRatio", "none");
-      path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      svg.appendChild(path);
-      navRoot.appendChild(svg);
-      return svg;
+    function clip() {
+      if (clipSvg) return clipSvg;
+      var NS = "http://www.w3.org/2000/svg";
+      clipSvg = document.createElementNS(NS, "svg");
+      clipSvg.setAttribute("class", "nav-menu_clip");
+      clipSvg.setAttribute("aria-hidden", "true");
+      clipSvg.setAttribute("width", "0");
+      clipSvg.setAttribute("height", "0");
+      var defs = document.createElementNS(NS, "defs");
+      var cp = document.createElementNS(NS, "clipPath");
+      cp.setAttribute("id", CLIP_ID);
+      cp.setAttribute("clipPathUnits", "userSpaceOnUse");
+      clipPath = document.createElementNS(NS, "path");
+      cp.appendChild(clipPath);
+      defs.appendChild(cp);
+      clipSvg.appendChild(defs);
+      navRoot.appendChild(clipSvg);
+      return clipSvg;
     }
 
-    // Rectangle spanning x .. x+w, with the left edge pulled into a curve.
-    // x = w  -> just off the right;  x = 0 -> exactly covering;  x = -w -> gone.
-    function draw(progress) {
+    // The revealed region is everything to the RIGHT of a bowed diagonal edge.
+    //
+    //   progress 0 -> the whole edge sits off the right, nothing revealed
+    //   progress 1 -> the whole edge sits off the left, everything revealed
+    //
+    // The edge runs (topX, 0) -> (topX + diag, h). The bottom point trailing the
+    // top one is what tilts it; the control point pushed back along the travel
+    // direction is what keeps it curved rather than straight.
+    function drawClip(progress) {
       var w = window.innerWidth;
       var h = window.innerHeight;
-      var x = w - progress * (w * 2);
-      var bulge = BULGE * w * Math.sin(progress * Math.PI);
+      var diag = h * DIAGONAL;
+      var bow = w * (BOW_BASE + BOW_PEAK * Math.sin(progress * Math.PI));
 
-      svg.setAttribute("viewBox", "0 0 " + w + " " + h);
-      path.setAttribute(
+      var start = w + diag + bow;
+      var end = -diag - bow;
+      var topX = start + progress * (end - start);
+      var botX = topX + diag;
+      var ctrlX = topX + diag / 2 - bow;
+      var right = w + diag + bow + 100;
+
+      clipPath.setAttribute(
         "d",
-        "M " + x + " 0" +
-          " L " + (x + w) + " 0" +
-          " L " + (x + w) + " " + h +
-          " L " + x + " " + h +
-          " Q " + (x - bulge) + " " + h / 2 + " " + x + " 0 Z"
+        "M " + topX + " 0" +
+          " Q " + ctrlX + " " + h / 2 + " " + botX + " " + h +
+          " L " + right + " " + h +
+          " L " + right + " 0 Z"
       );
+    }
+
+    function applyClip(on) {
+      panel.style.clipPath = on ? "url(#" + CLIP_ID + ")" : "";
+      panel.style.webkitClipPath = on ? "url(#" + CLIP_ID + ")" : "";
     }
 
     /* ------------------------------------------------------------ inert --- */
@@ -150,6 +189,10 @@
       }
     }
 
+    // Current reveal progress, kept so an interrupted animation reverses from
+    // where it actually got to rather than snapping to an end state.
+    var progress = 0;
+
     function setOpen(open) {
       if (open === isOpen) return;
 
@@ -159,39 +202,46 @@
       }
 
       if (reducedMotion() || !window.gsap) {
-        if (svg) svg.style.visibility = "hidden";
+        applyClip(false);
+        progress = open ? 1 : 0;
         applyState(open);
         return;
       }
 
-      curve();
-      var proxy = { p: 0 };
-      draw(0);
-      svg.style.visibility = "visible";
-      svg.style.willChange = "transform";
+      clip();
+      // The panel is present and painted for the whole animation; the clip is
+      // what makes it arrive. So state flips up front on open, and only after
+      // the edge has retreated on close.
+      if (open) {
+        drawClip(progress);
+        applyClip(true);
+        applyState(true);
+      }
 
+      var proxy = { p: progress };
       timeline = window.gsap.timeline({
         onComplete: function () {
-          svg.style.visibility = "hidden";
-          svg.style.willChange = "";
           timeline = null;
+          if (open) {
+            // Fully revealed - drop the clip so there is no subpixel edge and
+            // nothing to recompute on resize while the menu sits open.
+            applyClip(false);
+          } else {
+            applyClip(false);
+            applyState(false);
+          }
         }
       });
 
-      timeline
-        .to(proxy, {
-          p: 0.5,
-          duration: SWEEP / 2,
-          ease: "power2.in",
-          onUpdate: function () { draw(proxy.p); }
-        })
-        .add(function () { applyState(open); })
-        .to(proxy, {
-          p: 1,
-          duration: SWEEP / 2,
-          ease: "power2.out",
-          onUpdate: function () { draw(proxy.p); }
-        });
+      timeline.to(proxy, {
+        p: open ? 1 : 0,
+        duration: SWEEP * Math.abs((open ? 1 : 0) - progress),
+        ease: open ? "power3.out" : "power3.in",
+        onUpdate: function () {
+          progress = proxy.p;
+          drawClip(progress);
+        }
+      });
     }
 
     /* ------------------------------------------------------- link hover --- */

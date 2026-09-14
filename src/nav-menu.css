@@ -17,30 +17,21 @@
 }
 
 /* 2 ------------------------------------------------------------------------
- * The curve-swipe overlay.
+ * The clip-path carrier.
  *
- * nav-menu.js injects this element; it exists in no Webflow page, so a Webflow
- * class for it would be applied to nothing and the next dead-style sweep would
- * correctly remove it. Its styles therefore live here, next to the code that
- * draws the path.
+ * nav-menu.js injects a zero-size <svg> holding the <clipPath> whose path is
+ * redrawn each frame. The panel references it with `clip-path: url(#…)`, so the
+ * panel is what animates in — nothing sweeps over the top of it and no shape is
+ * ever painted. This element renders nothing itself and must never affect
+ * layout.
  *
- * The shape is a full-viewport rectangle with one curved leading edge, and the
- * `d` attribute is recomputed every frame from the viewport size — so nothing
- * here sets geometry beyond making the SVG fill the screen.
+ * It exists in no Webflow page, so a Designer class for it would be applied to
+ * nothing and the next dead-style sweep would correctly remove it. Hence a file.
  */
-.nav-menu_curve {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+.nav-menu_clip {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
   pointer-events: none;
-  visibility: hidden;
-  z-index: var(--_layout---layer--sticky);
-}
-
-/* Sweeps the inverse surface across the screen, so the wipe reads against both
- * the page it is leaving and the panel it reveals. One token to change if the
- * effect should be quieter. */
-.nav-menu_curve path {
-  fill: var(--surface--inverse);
 }

@@ -20,8 +20,8 @@ fly, so the source stays readable here and ships small.
 | `src/hover-peek.js` | Cursor-following image preview for the article list. No dependencies. | Site-wide |
 | `src/hover-peek.css` | State transitions, input-mode and reduced-motion variants for that preview. | Site-wide |
 | `src/disclosure-a11y.js` | Removes the `aria-haspopup="menu"` Webflow's JS adds to Dropdown toggles used as accordions. Opt-in via `[data-disclosure]`; no-ops where that attribute is absent. No dependencies. | Site-wide |
-| `src/nav-menu.js` | Full-screen menu: curve-swipe transition, focus handling, Escape, and `inert` on the page behind. GSAP core optional — degrades to an instant open. | Site-wide (the `nav` component) |
-| `src/nav-menu.css` | `overscroll-behavior` on the open panel, and the injected curve overlay. | Site-wide |
+| `src/nav-menu.js` | Full-screen menu: diagonal clip reveal, focus handling, Escape, and `inert` on the page behind. GSAP core optional — degrades to an instant open. | Site-wide (the `nav` component) |
+| `src/nav-menu.css` | `overscroll-behavior` on the open panel, and the injected clip-path carrier. | Site-wide |
 | `src/prefer-back.js` | Two link-behaviour corrections: a back link that calls `history.back()` when the visitor really did come from there, and a skip link that actually moves focus. No dependencies. | Site-wide |
 | `src/statement-scroll.js` | Splits the statement into per-word elements so the CSS can reveal them one at a time. No dependencies. | `/new-home` |
 | `src/statement-scroll.css` | Pill-skeleton scroll reveal for that statement. CSS scroll-driven animation, no JS. | `/new-home` |
@@ -984,29 +984,44 @@ The panel is Webflow markup inside the `nav` component — a `[data-nav-menu]`
 dialog holding the links, the contact block and the media image. The script owns
 the motion, the focus handling and the toggle's state. Nothing else.
 
-### The sweep
+### The reveal
 
-One shape crosses the viewport right to left, and the panel is swapped
-underneath it at the moment it covers the screen. The shape is a full-width
-rectangle whose **leading edge is a quadratic curve**, and the depth of that
-curve follows `sin(progress · pi)` — flat at both ends, deepest mid-travel.
-That is what makes it read as a swipe rather than a rectangle sliding past.
+The panel is **revealed behind a curved diagonal edge**. Nothing sweeps over the
+top of anything, no shape is painted, and there is no colour wipe — the panel
+itself is what arrives.
+
+The edge runs from a point on the top viewport edge to a point on the bottom
+edge, the bottom point trailing the top by `DIAGONAL × viewport height` — that
+trail is what tilts it. Its quadratic control point is pushed back along the
+direction of travel by `BOW`, so it is always bowed rather than straight, and
+bows further mid-travel:
 
 ```
-p = 0.0   spans 1440..2880   flat      off right
-p = 0.25  spans  720..2160   bulge 224 sweeping in
-p = 0.5   spans    0..1440   bulge 317 exactly covers — panel swaps here
-p = 0.75  spans -720.. 720   bulge 224 sweeping out
-p = 1.0   spans -1440..   0  flat      gone
+bow = width × (BOW_BASE + BOW_PEAK × sin(progress × pi))
 ```
 
-Measured at 1440x900. Either side of the swap the uncovered sliver shows the old
-state before and the new state after, which is what a wipe should do.
+**Closing reverses the same tween** rather than continuing through, so the edge
+retreats along the diagonal it arrived on. An interrupted animation reverses
+from wherever it actually got to — `progress` is kept outside the timeline for
+exactly that reason, and the duration is scaled by the remaining distance so a
+half-open menu does not take a full `SWEEP` to close.
 
-**GSAP core only.** No MorphSVG, no ScrollTrigger, no paid plugin — the path `d`
-is two numbers recomputed each frame. Without GSAP the menu still opens and
-closes, just with no sweep, so pages that do not load GSAP degrade rather than
-break.
+Four tunables at the top of the file:
+
+| | |
+|---|---|
+| `SWEEP` | duration of a full reveal |
+| `DIAGONAL` | trail as a multiple of viewport height — `1` is 45° |
+| `BOW_BASE` | curvature at rest, fraction of viewport width |
+| `BOW_PEAK` | extra curvature at mid-travel |
+
+An SVG `<clipPath>` is used rather than `clip-path: path()`. The two are
+equivalent in behaviour — both clip to the element's border box — and this one
+was simply written first.
+
+**GSAP core only.** No MorphSVG, no ScrollTrigger, no paid plugin: the path `d`
+is three numbers recomputed each frame. Without GSAP the menu opens and closes
+unclipped, so pages that do not load GSAP degrade rather than break.
 
 ### Why the dialog is NOT aria-modal
 
