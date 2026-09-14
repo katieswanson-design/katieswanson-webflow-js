@@ -49,7 +49,7 @@
  * ----------------------------------------------------------------- markup ---
  *   <button data-nav-toggle aria-expanded="false" aria-controls="nav-menu">
  *   <div id="nav-menu" data-nav-menu role="dialog" aria-label="menu">
- *     a.nav-menu_link …
+ *     a.nav-menu_display …
  *     <img data-nav-menu-media>          optional, fades in on link hover
  *
  * Both must be siblings inside the `nav` component root, which must itself be a
@@ -88,7 +88,7 @@
 
     var navRoot = panel.parentElement;
     var media = panel.querySelector("[data-nav-menu-media]");
-    var links = panel.querySelectorAll(".nav-menu_link");
+    var links = panel.querySelectorAll(".nav-menu_display");
     var inner = panel.querySelector(".nav-menu_inner");
     var pageMain = document.querySelector("[data-page-main]");
     var isOpen = false;

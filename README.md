@@ -1095,7 +1095,10 @@ timeline and starts the opposite one.
 ```html
 <button data-nav-toggle aria-expanded="false" aria-controls="nav-menu">menu</button>
 <div id="nav-menu" data-nav-menu role="dialog" aria-label="menu">
-  <a class="nav-menu_link">…</a>
+  <a class="nav-menu_display">…</a>      <!-- also on the "contact" label: this is
+                                              the menu's display TYPE, not a link
+                                              class. The script staggers whatever
+                                              carries it. -->
   <img data-nav-menu-media>        <!-- optional; fades in on link hover -->
 </div>
 ```
