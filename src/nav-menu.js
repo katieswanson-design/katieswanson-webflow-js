@@ -91,6 +91,13 @@
   var LINK_STAGGER = 0.06;      // 60ms, mid of the 50-75ms range
   var LINK_EASE = "power3.out";
 
+  // The exit gets its own numbers rather than a fraction of the entry. It was
+  // derived as LINK_DURATION * 0.5 with power3.out, which starts at maximum
+  // velocity — so the links snapped away before the curtain had really begun.
+  // Eased both ends, and long enough to feel connected to the container.
+  var LINK_OUT_DURATION = 0.65;
+  var LINK_OUT_EASE = "power3.inOut";
+
   // Where the page content is pushed while the menu is open. Straight from the
   // reference; tune freely, the menu covers it either way.
   var PAGE_PUSHED = { rotation: 10, x: 300, y: 450, scale: 1.5 };
@@ -357,9 +364,9 @@
         timeline.to(revealTargets, {
           yPercent: open ? 0 : 120,
           opacity: open ? 1 : 0,
-          duration: open ? LINK_DURATION : LINK_DURATION * 0.5,
+          duration: open ? LINK_DURATION : LINK_OUT_DURATION,
           stagger: open ? LINK_STAGGER : 0,
-          ease: LINK_EASE
+          ease: open ? LINK_EASE : LINK_OUT_EASE
         }, open ? duration * 0.35 : 0);
       }
     }
