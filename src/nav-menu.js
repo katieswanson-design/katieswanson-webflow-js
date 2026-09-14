@@ -69,13 +69,21 @@
 (function () {
   "use strict";
 
-  var SWEEP = 1.15;      // seconds, whole reveal
-  var EASE = "power4.inOut";
+  // Timings taken from the reference overlay.
+  //
+  // GSAP's power scale maps to the classic easing names as:
+  //   power1 = quad, power2 = cubic, power3 = QUART, power4 = quint
+  // so easeOutQuart is power3.out — not power4, which is a step further.
+  var SWEEP = 0.8;              // container reveal, both directions
+  var EASE = "power3.out";      // easeOutQuart ~ cubic-bezier(0.25, 1, 0.5, 1)
   var DIAGONAL = 0.75;   // how much lower the right of the bottom edge lands
                          // than the left, as a fraction of viewport height.
                          // The reference uses 175% vs 100%, i.e. 0.75.
   var BOW = 0.18;        // peak curvature of that bottom edge, fraction of height
-  var LINK_STAGGER = 0.08;
+
+  var LINK_DURATION = 0.6;
+  var LINK_STAGGER = 0.06;      // 60ms, mid of the 50-75ms range
+  var LINK_EASE = "power3.out";
 
   // Where the page content is pushed while the menu is open. Straight from the
   // reference; tune freely, the menu covers it either way.
@@ -273,7 +281,7 @@
         progress = open ? 1 : 0;
         if (window.gsap) {
           window.gsap.set(inner, open ? SETTLED : REST);
-          window.gsap.set(revealTargets, { yPercent: open ? 0 : 120, opacity: open ? 1 : 0.25 });
+          window.gsap.set(revealTargets, { yPercent: open ? 0 : 120, opacity: open ? 1 : 0 });
         }
         applyState(open);
         return;
@@ -342,10 +350,10 @@
       if (revealTargets.length) {
         timeline.to(revealTargets, {
           yPercent: open ? 0 : 120,
-          opacity: open ? 1 : 0.25,
-          duration: open ? 0.9 : 0.35,
+          opacity: open ? 1 : 0,
+          duration: open ? LINK_DURATION : LINK_DURATION * 0.5,
           stagger: open ? LINK_STAGGER : 0,
-          ease: open ? "power3.out" : "power2.in"
+          ease: LINK_EASE
         }, open ? duration * 0.35 : 0);
       }
     }
@@ -422,7 +430,7 @@
 
     if (window.gsap && !reducedMotion()) {
       window.gsap.set(inner, REST);
-      window.gsap.set(revealTargets, { yPercent: 120, opacity: 0.25 });
+      window.gsap.set(revealTargets, { yPercent: 120, opacity: 0 });
     }
 
     applyState(false, false);
