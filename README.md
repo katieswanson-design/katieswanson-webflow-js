@@ -662,15 +662,35 @@ Output is lowercased to match the site's all-lowercase brand treatment.
 | Attribute | Default | Effect |
 |---|---|---|
 | `data-timezone` | `America/Chicago` | Any IANA zone name |
+| `data-hour12` | *(12-hour)* | Set to `false` for a 24-hour clock |
+| `data-seconds` | *(off)* | Set to `true` to show seconds |
+| `data-zone-name` | *(shown)* | Set to `false` to drop the `cdt`/`cst` |
 | `data-meridiem` | *(shown)* | Set to `false` to drop the `am`/`pm` |
+
+```
+3:07 pm cdt    (defaults — the /new-home hero)
+21:41:30       (hour12 false, seconds true, zone-name false — the blend nav)
+```
 
 ### Notes
 
 - **The zone abbreviation is derived, never hardcoded.** Austin reads `cdt`
   through daylight time and `cst` the rest of the year on its own. Writing a
   literal `cst` into the markup would be wrong for eight months of the year.
-- It **updates on the minute boundary**, not on a fixed 60-second interval, so
-  the displayed minute is never a second stale.
+  Drop it with `data-zone-name="false"` when a city label sits beside the clock
+  and makes it redundant.
+- **24-hour is zero-padded** (`09:05`, not `9:05`) — an unpadded 24-hour time
+  reads as a typo. 12-hour keeps its natural unpadded hour.
+- It uses **`hourCycle: h23`, not `hour12: false`**, because the latter renders
+  midnight as `24:00` in some locales.
+- It **updates on the unit boundary** — every second when seconds are shown,
+  otherwise on the minute — rather than on a fixed interval, so the display is
+  never a tick stale.
+- **WCAG 2.2.2, with seconds on:** this is auto-updating content that never
+  stops. What covers it is the criterion's *essential* exception — a clock that
+  does not update is not a clock — but that is a judgement call, not something
+  the code earns. Without seconds it changes once a minute, well below anything
+  anyone would read as motion.
 - It **repaints when the tab regains focus**. Background tabs throttle timers,
   so the clock can be minutes behind by the time someone switches back.
 - An unusable `data-timezone` throws a `RangeError`; the script warns and leaves
@@ -940,6 +960,45 @@ Tunables on `.statement_text`: `--pill-span`, `--pill-len`, `--reveal-open`,
 `--reveal-len`. **`--reveal-open` must be ≥ `--pill-span` + `--pill-len`**, or
 words start arriving before the skeleton has finished building.
 
+### Two footguns that live in the Designer
+
+Both of these break the effect silently, and neither is visible from the Webflow
+UI where the value is actually edited.
+
+**The section must stay taller than the viewport.** `contain` only exists while
+the section covers the scrollport. The `min-height` of `250svh / 220svh / 200svh`
+on `.section.section-statement` is not styling — take it below ~`100svh` and the
+range collapses to nothing and the reveal stops running. The statement still
+reads (it falls back to its finished state), so this fails quietly.
+
+**The pin is `position: sticky`, so it dies inside a clipped ancestor.** Nesting
+this pattern inside anything with `overflow: hidden` or `overflow: clip` leaves
+the stage scrolling normally with no pin. On this site that rules out `.hero`
+(`overflow: hidden`) and `.section-footer` (`overflow: clip`, set in
+`reset.css`). ScrollTrigger pins with transforms and does not care; sticky does.
+
+### Browser support
+
+Verified against MDN compat data, 2026-09-13:
+
+| | Chrome / Edge | Safari | Firefox |
+|---|---|---|---|
+| `animation-timeline` | 115+ | 26+ | preview only |
+| `animation-range` | 115+ | 26+ | preview only |
+| `view-timeline-name` | 115+ | 26+ | preview only |
+| `@property` | 85+ | 16.4+ | 128+ |
+
+Stable Firefox has not shipped scroll-driven animations, and Safari only got them
+in 26. Those visitors get the plain sentence — correct, just not animated. If the
+effect needs to reach them, that is a GSAP rebuild plus a static swap, not a
+tweak.
+
+Two further limits worth knowing. The reveal tracks scroll **1:1** — there is no
+equivalent of ScrollTrigger's `scrub` smoothing, which is much of why the
+reference feels softer. And because the pill's opacity is a `calc()` over
+animated custom properties, it **cannot be composited**: every frame is a style
+recalc across all the words. Fine at 21; it would not be at 200.
+
 ### Word spacing is a compensation
 
 The pill padding sits on top of the real space between words, so a naive setup
@@ -952,6 +1011,78 @@ the shipped numbers are in the stylesheet.
 The words stay separated by **real space characters**, not margins, so
 `textContent` matches what was authored and the sentence still reads correctly to
 a screen reader and copies as a sentence. Don't optimise them away.
+
+## blend-nav
+
+Two fixed bars — `.nav-top` and `.nav-bottom` — that invert themselves against
+whatever is behind them using `mix-blend-mode: difference`. Built on
+`/admin/playground`. Modelled on studionamma.com.
+
+Almost all of it lives in the Designer, including the blend mode itself —
+Webflow exposes blending in the style panel. `blend-nav.css` holds only
+`:focus-visible`, which it does not.
+
+### Markup contract
+
+```
+nav.nav-top[aria-label="primary"]
+├ a.eyebrow.nav-action            logo
+├ div.eyebrow                     tagline
+├ button.eyebrow.nav-action       mode swap
+└ button.eyebrow.nav-action       menu
+
+div.nav-bottom
+├ div.eyebrow                     proudly neurodivergent
+└ div.nav-meta
+  ├ div.eyebrow                   location
+  └ div.eyebrow[data-local-time]  clock
+```
+
+`nav-bottom` is a `<div>`, not a `<nav>`. It contains no navigation — a tagline,
+a city and a clock — and a second unnamed navigation landmark would be noise in
+the landmark list. The class name is layout, not semantics.
+
+The two buttons are **real `<button>` elements**, which Webflow cannot produce
+from a Block (`set_tag` accepts only div/header/footer/nav/main/section/article/
+aside/address/figure). They are DOM elements with `dom_tag: button`, which still
+take proper Webflow classes. Both are inert placeholders pending the full-page
+navigation.
+
+### The colour you set is not the colour you see
+
+`difference` paints `|backdrop - source|`, so the value on the bar is a
+pre-image. With white as the source:
+
+| backdrop | renders as |
+|---|---|
+| cream `#fffdfa` | `#000205` near-black |
+| navy `#0d1826` | `#f2e7d9` warm off-white |
+
+A source of `#f2e5d4` instead lands exactly on brand navy over cream, at the
+cost of a warm tan over navy. **Over mid-tone imagery the result converges on
+the backdrop's own luminance and contrast can fail** — that is inherent to the
+technique and cannot be guaranteed the way a token can.
+
+### What silently breaks it
+
+The bar blends against its backdrop within the nearest isolated group. An
+ancestor with `isolation: isolate`, `opacity` < 1, a `filter`, a `transform`,
+`will-change` or `backdrop-filter` creates that group, and the bar then blends
+against *it* rather than the page — which reads as the effect having stopped
+working. Both bars are direct children of `<body>` to keep that path clear.
+
+Neither bar carries a background. One would blend too, and the whole bar would
+invert as a solid block.
+
+It **replaces** the acrylic treatment on `.site-nav` rather than joining it —
+both solve legibility over an unknown backdrop, and running both would mean a
+blurred panel being inverted.
+
+### Scaffolding
+
+`.nav-demo-band` and `.nav-demo-band.is-navy` are two full-height bands on the
+playground page, there only so the blend has something to invert against.
+Delete them when the page gets real content.
 
 ## Migration from Slater
 
