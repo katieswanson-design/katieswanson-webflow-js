@@ -296,3 +296,36 @@ a,
     opacity: 1 !important;
   }
 }
+
+/* ------------------------------------------------ scroll-into-view --- */
+
+/*
+ * Moved here from site-nav.css on 2026-09-14, when that file was deleted along
+ * with the old sticky nav. The rule itself was never about that nav.
+ *
+ * A FIXED bar can land on top of whatever was just scrolled into view — an
+ * anchor target, or an element the browser scrolled to because it took focus.
+ * scroll-padding-top reserves the bar's height on every scroll-into-view the
+ * browser performs, which is the general fix for WCAG 2.4.11 rather than
+ * patching scroll-margin onto every individual target. It matters MORE with a
+ * fixed bar than it did with a sticky one, and it is what keeps the case study
+ * back button's jump to #featured-case-studies from landing under the nav.
+ *
+ * `html` is not stylable in the Webflow Designer, so this has to live in CSS.
+ *
+ * Literal values, not var(--site-nav-height): that variable was published by
+ * site-nav.js, which is gone. The numbers are the blend nav's height plus 1rem
+ * of breathing room, and they track .hero's padding-top.
+ *
+ * COUPLED to .nav-top's height — its block padding plus the tap-target height
+ * of .nav-action. Retune both together.
+ */
+html {
+  scroll-padding-top: 6.75rem;
+}
+
+@media (max-width: 767px) {
+  html {
+    scroll-padding-top: 8rem;
+  }
+}
