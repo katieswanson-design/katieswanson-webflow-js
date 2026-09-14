@@ -88,7 +88,27 @@
 
     var navRoot = panel.parentElement;
     var media = panel.querySelector("[data-nav-menu-media]");
-    var links = panel.querySelectorAll(".nav-menu_display");
+    // Two different sets, deliberately.
+    //
+    //   navLinks      — the real anchors. These get hover/focus handlers.
+    //   revealTargets — what staggers in and dims out. The contact label and its
+    //                   email button are ONE unit, so the whole .nav-menu_contact
+    //                   block is a single target and the label inside it is not
+    //                   animated separately. Otherwise the label slides up while
+    //                   the email it belongs to stays put.
+    var displayEls = panel.querySelectorAll(".nav-menu_display");
+    var contactBlock = panel.querySelector(".nav-menu_contact");
+
+    var navLinks = Array.prototype.filter.call(displayEls, function (el) {
+      return el.tagName === "A";
+    });
+
+    var revealTargets = Array.prototype.filter.call(displayEls, function (el) {
+      return !contactBlock || !contactBlock.contains(el);
+    });
+    if (contactBlock) revealTargets.push(contactBlock);
+
+    var links = navLinks;
     var inner = panel.querySelector(".nav-menu_inner");
     var pageMain = document.querySelector("[data-page-main]");
     var isOpen = false;
@@ -253,7 +273,7 @@
         progress = open ? 1 : 0;
         if (window.gsap) {
           window.gsap.set(inner, open ? SETTLED : REST);
-          window.gsap.set(links, { yPercent: open ? 0 : 120, opacity: open ? 1 : 0.25 });
+          window.gsap.set(revealTargets, { yPercent: open ? 0 : 120, opacity: open ? 1 : 0.25 });
         }
         applyState(open);
         return;
@@ -319,8 +339,8 @@
         }, 0);
       }
 
-      if (links.length) {
-        timeline.to(links, {
+      if (revealTargets.length) {
+        timeline.to(revealTargets, {
           yPercent: open ? 0 : 120,
           opacity: open ? 1 : 0.25,
           duration: open ? 0.9 : 0.35,
@@ -341,14 +361,16 @@
     /* ------------------------------------------------------- link hover --- */
 
     function resetLinks() {
-      Array.prototype.forEach.call(links, function (l) { l.style.opacity = ""; });
+      Array.prototype.forEach.call(revealTargets, function (l) { l.style.opacity = ""; });
       if (media) media.style.opacity = "0";
     }
 
     function focusLink(active) {
       var instant = reducedMotion() || !window.gsap;
-      Array.prototype.forEach.call(links, function (l) {
-        var dim = active && l !== active;
+      Array.prototype.forEach.call(revealTargets, function (l) {
+        // A hovered link lives inside its own reveal target, so compare by
+        // containment rather than identity or the contact block never lights up.
+        var dim = active && !(l === active || l.contains(active));
         if (instant) {
           l.style.opacity = dim ? "0.35" : "1";
         } else {
@@ -400,7 +422,7 @@
 
     if (window.gsap && !reducedMotion()) {
       window.gsap.set(inner, REST);
-      window.gsap.set(links, { yPercent: 120, opacity: 0.25 });
+      window.gsap.set(revealTargets, { yPercent: 120, opacity: 0.25 });
     }
 
     applyState(false, false);
