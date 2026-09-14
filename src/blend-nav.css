@@ -22,15 +22,18 @@
  * `.nav-label` is the type class, and it is NOT `.eyebrow` — an eyebrow is a
  * kicker above a heading, which none of these are. It follows the same route
  * `.site-nav_bio` takes on /new-home: it sets the Typography collection to its
- * MONO mode and binds the generic typography variables, so the type comes from
- * the token system rather than from hardcoded values.
+ * MONO mode and binds the generic typography variables, so every part of the
+ * type — family included — resolves through the token system.
  *
- * It also hand-binds font-family to the Gt Pressura Mono primitive, for the
- * same reason `.site-nav_bio` does: the MONO mode swaps font-SIZE but leaves
- * font-family at the collection default, so the mode alone does not actually
- * produce mono type. Fixing that at the token level — pointing font-family at
- * the mono primitive under the MONO mode — would let both classes drop the
- * hand-binding.
+ * The MONO mode used to swap font-size while leaving font-family at the
+ * collection default, so every mono class had to hand-bind the Gt Pressura Mono
+ * primitive itself. That is fixed: MONO now maps font-family to the mono
+ * primitive, and `.nav-label` binds the generic `--_typography---font-family`.
+ *
+ * Note the class must still DECLARE font-family — pointed at the generic
+ * variable. Deleting the declaration and relying on the mode alone does not
+ * work: the mode sets the custom property, but with nothing consuming it the
+ * element just inherits body's sans. Verified the hard way.
  *
  * ---------------------------------------------------------------------------
  * HOW THE BLEND WORKS, AND WHAT BREAKS IT

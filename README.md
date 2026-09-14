@@ -1047,11 +1047,22 @@ the generic typography variables (`font-size`, `line-height`, `font-weight`,
 `letter-spacing`), so the type resolves through the token system instead of
 hardcoded values.
 
-It also hand-binds `font-family` to the `Gt Pressura Mono` primitive — and so
-does `.site-nav_bio`, for a reason worth fixing at the source: **the MONO mode
-swaps font-size but leaves font-family at the collection default**, so setting
-the mode alone does not actually produce mono type. Point `font-family` at the
-mono primitive under the MONO mode and both classes can drop the hand-binding.
+**The MONO mode now carries the family too** (fixed 2026-09-14). It used to swap
+`font-size` while leaving `font-family` at the collection default, so every mono
+class had to hand-bind the `Gt Pressura Mono` primitive itself. MONO now maps
+`font-family` to that primitive, and `.nav-label` binds the generic
+`--_typography---font-family` like every other property.
+
+One trap worth writing down: **the class must still declare `font-family`**,
+pointed at the generic variable. Deleting the declaration and relying on the mode
+alone does not work — the mode sets the custom property, but with nothing
+consuming it the element falls back to inheriting body's sans.
+
+Four classes still force the family themselves and could now drop it:
+`.site-nav_bio`, `.text-mono`, `.copy-email-text__wrap.small` (all bound to the
+primitive) and `.name` (which hardcodes the literal string `"Gt Pressura Mono
+Web"` rather than any token). They render correctly as-is — this is tidying, not
+a fix.
 
 The role in `nav-top` carries `data-text-cycle` with an empty value, which is
 what makes `text-cycle.js` use its built-in role list — exactly as `/new-home`
