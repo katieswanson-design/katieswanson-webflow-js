@@ -31,6 +31,9 @@
  *     point. Nothing traps Tab: with the rest of the page inert there is
  *     nowhere wrong to go, so the browser's own focus order is correct.
  *   - Escape closes and returns focus to the toggle, per the guidelines.
+ *     Focus always returns to the toggle itself rather than to whatever was
+ *     focused on open: Safari does not focus a <button> when it is clicked,
+ *     so reading document.activeElement at open time yields <body> there.
  *
  * ----------------------------------------------------------------- markup ---
  *   <button data-nav-toggle aria-expanded="false" aria-controls="nav-menu">
@@ -67,7 +70,6 @@
     var media = panel.querySelector("[data-nav-menu-media]");
     var links = panel.querySelectorAll(".nav-menu_link");
     var isOpen = false;
-    var lastFocused = null;
     var timeline = null;
 
     // The panel takes focus itself on open so the dialog name is announced
@@ -139,16 +141,17 @@
 
       if (open) {
         panel.focus({ preventScroll: true });
-      } else if (lastFocused) {
-        lastFocused.focus({ preventScroll: true });
-        lastFocused = null;
+      } else {
+        // Always the toggle — never document.activeElement as captured on open.
+        // Safari does not focus a <button> on click, so that capture is <body>
+        // there and focus would be dropped on the floor for ~15% of visitors.
+        toggle.focus({ preventScroll: true });
+        resetLinks();
       }
-      if (!open) resetLinks();
     }
 
     function setOpen(open) {
       if (open === isOpen) return;
-      if (open) lastFocused = document.activeElement;
 
       if (timeline) {
         timeline.kill();
