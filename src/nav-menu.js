@@ -70,10 +70,12 @@
   "use strict";
 
   var SWEEP = 1.15;      // seconds, whole reveal
-  var DIAGONAL = 0.75;   // how far the bottom of the edge trails the top,
-                         // as a multiple of viewport height. 1 = 45 degrees.
-  var BOW_BASE = 0.12;   // edge curvature at rest, fraction of viewport width
-  var BOW_PEAK = 0.10;   // extra curvature at mid-travel
+  var EASE = "power4.inOut";
+  var DIAGONAL = 0.75;   // how much lower the right of the bottom edge lands
+                         // than the left, as a fraction of viewport height.
+                         // The reference uses 175% vs 100%, i.e. 0.75.
+  var BOW = 0.18;        // peak curvature of that bottom edge, fraction of height
+  var LINK_STAGGER = 0.08;
 
   function init() {
     var toggle = document.querySelector("[data-nav-toggle]");
@@ -83,6 +85,7 @@
     var navRoot = panel.parentElement;
     var media = panel.querySelector("[data-nav-menu-media]");
     var links = panel.querySelectorAll(".nav-menu_link");
+    var inner = panel.querySelector(".nav-menu_inner");
     var isOpen = false;
     var timeline = null;
 
@@ -90,6 +93,11 @@
     // before its contents. Set here rather than in the Designer so the contract
     // cannot be broken by an editing accident.
     panel.setAttribute("tabindex", "-1");
+
+    // Where the panel contents sit before they settle. Matches the reference:
+    // the content arrives from up and to the left, larger and rotated.
+    var REST = { rotation: -15, x: -100, y: -100, scale: 1.5, opacity: 0.25 };
+    var SETTLED = { rotation: 0, x: 0, y: 0, scale: 1, opacity: 1 };
 
     function reducedMotion() {
       return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -121,38 +129,35 @@
       return clipSvg;
     }
 
-    // The revealed region is everything to the RIGHT of a bowed diagonal edge.
+    // The panel drops DOWN from the top. Its bottom edge is a diagonal — the
+    // right side travels further than the left — and that edge is bowed rather
+    // than straight, which is the only thing this departs from the reference on.
     //
-    //   progress 0 -> the whole edge sits off the right, nothing revealed
-    //   progress 1 -> the whole edge sits off the left, everything revealed
+    //   progress 0 -> zero height at the top, nothing revealed
+    //   progress 1 -> left edge at h, right edge at h * (1 + DIAGONAL), covered
     //
-    // The edge runs (topX, 0) -> (topX + diag, h). The bottom point trailing the
-    // top one is what tilts it; the control point pushed back along the travel
-    // direction is what keeps it curved rather than straight.
+    // The bow follows sin(progress * pi) so it is exactly flat at progress 0 —
+    // a constant bow would hang a visible sliver below the top edge at rest.
     function drawClip(progress) {
       var w = window.innerWidth;
       var h = window.innerHeight;
-      var diag = h * DIAGONAL;
-      var bow = w * (BOW_BASE + BOW_PEAK * Math.sin(progress * Math.PI));
 
-      // Travel exactly the useful range and no further. The leftmost point of
-      // the edge is always its top point, so the panel is fully hidden the
-      // moment topX reaches w, and fully revealed once botX (= topX + diag)
-      // passes 0. Starting further out than this spends real animation time
-      // moving an edge nobody can see.
-      var start = w + 1;
-      var end = -(diag + 1);
-      var topX = start + progress * (end - start);
-      var botX = topX + diag;
-      var ctrlX = topX + diag / 2 - bow;
-      var right = w + diag + bow + 100;
+      var yLeft = progress * h;
+      var yRight = progress * h * (1 + DIAGONAL);
+      var bow = h * BOW * Math.sin(progress * Math.PI);
+
+      // Control point at the chord midpoint, pushed down in the direction of
+      // travel so the edge bulges the way it is moving.
+      var ctrlX = w / 2;
+      var ctrlY = (yLeft + yRight) / 2 + bow;
 
       clipPath.setAttribute(
         "d",
-        "M " + topX + " 0" +
-          " Q " + ctrlX + " " + h / 2 + " " + botX + " " + h +
-          " L " + right + " " + h +
-          " L " + right + " 0 Z"
+        "M 0 0" +
+          " L " + w + " 0" +
+          " L " + w + " " + yRight +
+          " Q " + ctrlX + " " + ctrlY + " 0 " + yLeft +
+          " Z"
       );
     }
 
@@ -219,7 +224,12 @@
 
       if (reducedMotion() || !window.gsap) {
         applyClip(false);
+        panel.style.overflow = "";
         progress = open ? 1 : 0;
+        if (window.gsap) {
+          window.gsap.set(inner, open ? SETTLED : REST);
+          window.gsap.set(links, { yPercent: open ? 0 : 120, opacity: open ? 1 : 0.25 });
+        }
         applyState(open);
         return;
       }
@@ -240,26 +250,52 @@
 
       var target = open ? 1 : 0;
       var proxy = { p: progress };
+      var duration = Math.max(0.2, SWEEP * Math.abs(target - progress));
+
+      // A scaled-up inner can push scrollbars onto the panel mid-animation.
+      // Clamp for the duration and hand overflow back afterwards.
+      panel.style.overflow = "hidden";
 
       timeline = window.gsap.timeline({
         onComplete: function () {
           timeline = null;
           applyClip(false);
+          panel.style.overflow = "";
           if (!open) applyState(false);
         }
       });
 
       timeline.to(proxy, {
         p: target,
-        // Scaled by the distance actually left to travel, with a floor so an
-        // interruption near the end does not produce a zero-length tween.
-        duration: Math.max(0.2, SWEEP * Math.abs(target - progress)),
-        ease: open ? "power3.out" : "power3.in",
+        duration: duration,
+        ease: EASE,
         onUpdate: function () {
           progress = proxy.p;
           drawClip(progress);
         }
-      });
+      }, 0);
+
+      if (inner) {
+        timeline.to(inner, gsapVars(open ? SETTLED : REST, duration), 0);
+      }
+
+      if (links.length) {
+        timeline.to(links, {
+          yPercent: open ? 0 : 120,
+          opacity: open ? 1 : 0.25,
+          duration: open ? 0.9 : 0.35,
+          stagger: open ? LINK_STAGGER : 0,
+          ease: open ? "power3.out" : "power2.in"
+        }, open ? duration * 0.35 : 0);
+      }
+    }
+
+    function gsapVars(state, duration) {
+      return {
+        rotation: state.rotation, x: state.x, y: state.y,
+        scale: state.scale, opacity: state.opacity,
+        duration: duration, ease: EASE
+      };
     }
 
     /* ------------------------------------------------------- link hover --- */
@@ -320,6 +356,11 @@
         applyState(false);
       });
     });
+
+    if (window.gsap && !reducedMotion()) {
+      window.gsap.set(inner, REST);
+      window.gsap.set(links, { yPercent: 120, opacity: 0.25 });
+    }
 
     applyState(false, false);
   }
