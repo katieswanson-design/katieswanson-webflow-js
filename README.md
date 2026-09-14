@@ -17,11 +17,12 @@ fly, so the source stays readable here and ships small.
 | `src/copy-email.js` | Copies an email to the clipboard and flips the button into a copied state. No dependencies. | Site-wide |
 | `src/copy-email.css` | Hover, focus and copied states for that button. | Site-wide |
 | `src/expanding-panels.css` | Expand-on-hover/focus behaviour for the hero panel row. No JS. | `/new-home` hero |
-| `src/site-nav.js` | Publishes the nav's measured height and toggles hide-on-scroll. No dependencies. | Site-wide |
-| `src/site-nav.css` | Sticky behaviour and the hide transition for that nav. | Site-wide |
 | `src/hover-peek.js` | Cursor-following image preview for the article list. No dependencies. | Site-wide |
 | `src/hover-peek.css` | State transitions, input-mode and reduced-motion variants for that preview. | Site-wide |
-| `src/prefer-back.js` | Makes a back link call `history.back()` when the visitor really did come from there. | Site-wide |
+| `src/disclosure-a11y.js` | Removes the `aria-haspopup="menu"` Webflow's JS adds to Dropdown toggles used as accordions. Opt-in via `[data-disclosure]`. No dependencies. | Case study pages |
+| `src/prefer-back.js` | Two link-behaviour corrections: a back link that calls `history.back()` when the visitor really did come from there, and a skip link that actually moves focus. No dependencies. | Site-wide |
+| `src/statement-scroll.js` | Splits the statement into per-word elements so the CSS can reveal them one at a time. No dependencies. | `/new-home` |
+| `src/statement-scroll.css` | Pill-skeleton scroll reveal for that statement. CSS scroll-driven animation, no JS. | `/new-home` |
 | `src/view-transition.css` | Shared-element morph from a home case study card to that case study's hero. No JS. | Site-wide |
 | `src/bunny-hls.js` | Bunny HLS background video player (Osmo resource). Requires `hls.js` first. | `/new-home` |
 | `src/case-study.css` | One `max-width: 1200px` grid correction Webflow's breakpoints can't express. | Case study pages |
@@ -225,6 +226,35 @@ four hrefs have to change to `/#featured-case-studies`** — on
 to "page → section", which survives a slug change automatically, but that link
 type is not exposed through the Data API, so it has to be set by hand in the
 Designer if you want it to be self-maintaining.
+
+### It also fixes the skip link
+
+The same file handles `[data-skip-link]`, because it is the same class of
+problem — a link whose correct behaviour the browser does not give us for free.
+
+A skip link is supposed to move both the **scroll and the focus** to its target,
+so the next Tab continues past the nav. Browsers only do the focus half when the
+navigation actually **scrolls**. On `/new-home` the target is the hero, already
+at the top of the page, so nothing scrolls, the focus step is skipped, and the
+next Tab resumes from the link — landing the visitor back in the nav they just
+asked to skip ([WCAG 2.4.1](https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks)).
+
+```
+<a href="#main-content" data-skip-link> skip to main content </a>
+<section id="main-content" tabindex="-1"> … </section>
+```
+
+All three parts are required. Without `tabindex="-1"` the section cannot take
+focus at all; both it and the ID are set in the Designer.
+
+This does **not** `preventDefault`. The browser keeps the hash change and the
+scroll — which matters, because that scroll respects `scroll-padding-top` in
+`reset.css`. The script only queues the `focus({ preventScroll: true })` so it
+lands after the browser has finished.
+
+**Test it by activating the link and then pressing Tab**, and checking where
+focus goes. Testing the activation alone proves nothing: the hash updates either
+way, so a broken skip link looks like a working one.
 
 ## hover-peek
 
@@ -807,16 +837,19 @@ type while the box grows means taking the font-size off `cqi`.
 
 `margin-block: auto` (set in the Designer) centres the wrapper exactly between
 the hero's padding edge and the panel row. That reads as too low, because the
-hero reserves the whole `--site-nav-height` as `padding-top` while the nav's
-text stops one block-padding (`2rem`) short of it — so the top gap inherits
-2rem of empty nav padding that the bottom gap has no equivalent for. Measured
-ink-to-ink at 1440×900: **97.5px above, 64.6px below**.
+hero reserves a nav's worth of `padding-top` while the nav's text stops one
+block-padding (`2rem`) short of it — so the top gap inherits 2rem of empty nav
+padding that the bottom gap has no equivalent for. Measured ink-to-ink at
+1440×900 against the sticky nav: **97.5px above, 64.6px below**.
 
-The correction is `padding-bottom: 2rem` on the wrapper. It makes the box 2rem
-taller, so each auto margin gives up 1rem and the text rises by half the error —
-which is the whole error, since it was split across two margins. After:
-**81.5 / 80.6**, holding to within 0.8–0.9px at 1440×1200, 1920×900, 1280×720
-and 1000×800. That residual is the type's half-leading.
+The correction is `padding-bottom` on the wrapper — **now set in the Designer,
+not here** (`2.3rem`, cleared to `0` at `medium`). It makes the box that much
+taller, so each auto margin gives up half of it and the text rises by half the
+error — which is the whole error, since it was split across two margins. At the
+`2rem` this was first measured at: **81.5 / 80.6**, holding to within 0.8–0.9px
+at 1440×1200, 1920×900, 1280×720 and 1000×800. That residual is the type's
+half-leading. The `2.3rem` now in the Designer is Katie's retune after the nav
+changed, and has not been re-measured.
 
 Padding, not a transform: a transform moves the ink without telling the layout,
 leaving the box and the space it reserves permanently out of step. Block padding
@@ -837,61 +870,104 @@ rather than in the Designer next to the rest of `.hero-statement`.
   `overflow: hidden`, so a positive offset gets clipped and leaves no visible
   ring at all.
 
-## site-nav
+## site-nav — retired
 
-A sticky site nav that hides when you scroll down and comes back when you scroll
-up. Extracted from what was `.hero_top`.
+`src/site-nav.js` and `src/site-nav.css` were **deleted in v1.0.57**, along with
+the `.site-nav`, `.site-nav_contact` and `.site-nav_meta` classes. The sticky
+hide-on-scroll bar is gone; see **blend-nav** below for what replaced it.
+
+Two things outlived it and are worth knowing about:
+
+- **`scroll-padding-top` moved into `reset.css`** as a literal — `6.75rem`, and
+  `8rem` below 768px. It stops the fixed bar landing on top of anchor targets
+  and elements the browser scrolls to on focus
+  ([WCAG 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum)).
+  One rule, rather than `scroll-margin` on every target.
+- **`--site-nav-height` is now unset everywhere.** The `ResizeObserver` that
+  published it went with the script, so every remaining `var(--site-nav-height,
+  …)` in this repo resolves to its fallback. The hero no longer uses it at all —
+  it is `min-height: 100vh` with a literal `padding-top` set in the Designer.
+
+The lesson the old nav was written to demonstrate still stands and is applied in
+`statement-scroll` below: **keep the motion in CSS.** Animating from JavaScript
+puts it beyond the reach of the global `prefers-reduced-motion` guard in
+`reset.css`, the same way GSAP is.
+
+## disclosure-a11y
+
+Webflow's Dropdown element is built for navigation menus. The case study
+accordions use it as a **disclosure** — a button that expands a panel of prose.
+
+Most of what Webflow's JS adds is correct for that: `role="button"`,
+`tabindex="0"`, `aria-controls`, and an `aria-expanded` that genuinely tracks
+state. One attribute is not:
+
+```
+aria-haspopup="menu"
+```
+
+That promises a menu of menuitems, navigable with arrow keys, closing on
+selection. There is no menu. A screen reader announces *"Overview, button, menu
+pop-up, collapsed"* and sets an expectation the panel never meets.
+
+**It is added by Webflow's JS, not written into the published markup.** So there
+is nothing to fix in the Designer, and auditing the published HTML will not show
+it — the static markup is a bare `<div class="w-dropdown-toggle">` with no role
+at all. Read the live DOM, and give Webflow's JS time to run first.
 
 ### Markup contract
 
+```html
+<div class="w-dropdown" data-disclosure>
+  <div class="w-dropdown-toggle" aria-label="Overview"> … </div>
+  <nav class="w-dropdown-list"> … </nav>
+</div>
 ```
-<div data-site-nav class="site-nav">      ← must be a child of <body>
-  ├ div.site-nav_bio                       logo lockup, role cycle
-  └ div.site-nav_contact                   contact pill + time/location
-```
 
-**It has to be a child of `<body>`, not of `.hero`.** `.hero` sets
-`overflow: hidden`, which makes it the sticky containing block — the nav would
-stick only while the hero is on screen and then scroll away with it.
+`data-disclosure` goes on the **wrapper**. It is opt-in on purpose: every
+Webflow Dropdown on the site today is one of these accordions, but a real
+navigation menu built the same way would *want* `aria-haspopup`, and stripping
+it by class would quietly break it later. Unmarked dropdowns are left alone.
 
-### Tunables
+The four wrappers live inside the `case study description` component, so the
+attribute is set once and reaches all three case study pages. **The
+`/case-studies/case-study-template` page still holds its own copy of the
+accordions outside that component** — if it survives, it needs the attribute
+adding by hand.
 
-| Attribute | Default | Effect |
-|---|---|---|
-| `data-nav-hide-after` | `120` | px of scroll before hiding is allowed |
-| `data-nav-threshold` | `6` | px of movement before it reacts |
+### The accessible name is separate, and is NOT handled here
 
-### How it is split
+These toggles need an explicit `aria-label` in the Designer, set to the section
+name only — `aria-label="Overview"`, not `"Expand Overview section"`.
 
-The script only toggles `[data-nav-hidden]` and publishes `--site-nav-height`.
-Every bit of movement is a CSS transition in `site-nav.css`.
+Two reasons, both measured:
 
-That split is the point: because the motion is CSS, the global
-`prefers-reduced-motion` guard in `reset.css` reaches it. Animating from
-JavaScript — as the common recipe does — puts it beyond that guard's reach, the
-same way GSAP is.
+- **Without any label the button has no accessible name at all.** Name-from-
+  content does not reach the `<h2>` through the intervening `.row` wrapper.
+  Removing the label to "let the heading name it" produces a bare
+  `button` in the accessibility tree — a 4.1.2 failure, worse than a stale
+  label.
+- **The name must not carry state.** `aria-expanded` already does, correctly, so
+  a name containing "Expand" contradicts itself the moment the panel opens:
+  *"Expand Overview section, button, expanded"*. The bare section name also
+  matches the visible text, which satisfies 2.5.3 Label in Name.
 
-### Notes
+That label is markup and belongs in the Designer. This script does not add it.
 
-- **`transform: translateY(-100%)`, not a negative `top`.** The usual recipe
-  offsets by the bar's height as a hardcoded number; this nav's height is
-  content-driven. A transform is always exactly its own height, and it
-  composites instead of triggering layout on every scroll frame.
-- **`--site-nav-height` is measured, not assumed.** The hero sizes itself with
-  `calc(100vh - var(--site-nav-height))` so the first screen fits exactly. A
-  `ResizeObserver` keeps it current across breakpoints and copy changes; `7rem`
-  is the pre-JS fallback, close enough to avoid a layout shift.
-- **`:not(:focus-within)` on the hidden state** brings the nav back when you Tab
-  into it. Without it the tab order runs through off-screen controls —
-  [WCAG 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum).
-- **`scroll-padding-top` on `html`** stops the bar landing on top of anchor
-  targets and elements the browser scrolls to on focus. One rule, rather than
-  `scroll-margin` on every target.
-- **Under reduced motion the nav never hides at all.** Collapsing the transition
-  would still let it jump in and out; suppressing the hiding is the honest read
-  of the setting.
-- Scroll handling is rAF-throttled and `passive`, with a threshold so trackpad
-  noise cannot flip the state.
+### Why `Webflow.push`
+
+`aria-haspopup` is already set by the time `Webflow.push` callbacks run —
+measured, not assumed — so one sweep is enough. Once removed it does not come
+back through open and close, so there is no observer and no re-sweep.
+`aria-expanded` keeps working afterwards; this takes nothing else away.
+
+### Still open
+
+`aria-haspopup` is the only thing corrected. The toggle is a `<div role="button">`
+wrapping an `<h2>`, where the accessible pattern is `<h2><button>`. The heading
+is still exposed separately in the accessibility tree, so heading navigation
+works — but restructuring it would mean fighting Webflow's Dropdown, and has not
+been attempted.
 
 ## statement-scroll
 
@@ -911,7 +987,7 @@ scroll listener, no rAF loop.
 Two reasons it is not GSAP. ScrollTrigger is not loaded on this site (only GSAP
 core), so it would mean another library on the critical path. And anything
 animated from JS sits outside the global `prefers-reduced-motion` guard in
-`reset.css`, which is the same reason `site-nav` transitions in CSS.
+`reset.css`. Motion belongs in CSS for exactly that reason.
 
 ### Markup contract
 
@@ -1108,9 +1184,9 @@ working. Both bars are direct children of `<body>` to keep that path clear.
 Neither bar carries a background. One would blend too, and the whole bar would
 invert as a solid block.
 
-It **replaces** the acrylic treatment on `.site-nav` rather than joining it —
-both solve legibility over an unknown backdrop, and running both would mean a
-blurred panel being inverted.
+It **replaced** the acrylic treatment the old `.site-nav` carried rather than
+joining it — both solve legibility over an unknown backdrop, and running both
+would mean a blurred panel being inverted. That nav is now retired entirely.
 
 ### Scaffolding
 
