@@ -2,8 +2,8 @@
  * nav-menu.js — the full-screen menu, and the diagonal edge that reveals it.
  *
  * The panel itself is Webflow markup inside the `nav` component: a
- * [data-nav-menu] dialog holding the links, the contact block and the media
- * image. This file owns three things the Designer cannot: the motion, the
+ * [data-nav-menu] dialog holding the link rows and the contact block. This file
+ * owns three things the Designer cannot: the motion, the
  * focus handling, and the state of the toggle button.
  *
  * ------------------------------------------------------------------ motion --
@@ -49,8 +49,10 @@
  * ----------------------------------------------------------------- markup ---
  *   <button data-nav-toggle aria-expanded="false" aria-controls="nav-menu">
  *   <div id="nav-menu" data-nav-menu role="dialog" aria-label="menu">
- *     a.nav-menu_display …
- *     <img data-nav-menu-media>          optional, fades in on link hover
+ *     .nav-menu_row  >  <img data-nav-menu-thumb>  +  a.nav-menu_display
+ *
+ * Each row is a thumbnail and a word. The thumbnail sits at width 0 until its
+ * row is hovered or its link focused, then opens and pushes the word across.
  *
  * Both must be siblings inside the `nav` component root, which must itself be a
  * direct child of <body> — the inert pass walks body's children and skips the
@@ -108,7 +110,6 @@
     if (!toggle || !panel) return;
 
     var navRoot = panel.parentElement;
-    var media = panel.querySelector("[data-nav-menu-media]");
     // Two different sets, deliberately.
     //
     //   navLinks      — the real anchors. These get hover/focus handlers.
@@ -385,39 +386,72 @@
     // by the open/close tweens: the exit tween lands them at 0, which IS the
     // rest state. Clearing it reverted them to 1, so the second open slid them
     // up with no fade at all.
+    // Close every thumb. Opacity on the links themselves is owned by the
+    // open/close tweens — clearing it here reverted them to 1 and killed the
+    // fade on the second open.
     function resetLinks() {
-      if (media) media.style.opacity = "0";
+      Array.prototype.forEach.call(rows, function (row) { setRow(row, false, true); });
     }
 
-    function focusLink(active) {
+    var THUMB_RATIO = 16 / 10;   // matches aspect-ratio on .nav-menu_thumb
+    var THUMB_GAP = 20;          // px between the thumb and the word
+    var THUMB_EASE = "power3.out";
+    var rows = panel.querySelectorAll(".nav-menu_row");
+
+    // Each row is [thumb, link]. The thumb sits at width 0 until its row is
+    // hovered, then opens and pushes the word across — the reference reveals
+    // the picture inline at the start of the link rather than parking one image
+    // somewhere else on the panel.
+    function setRow(row, on, instant) {
+      var thumb = row.querySelector("[data-nav-menu-thumb]");
+      if (!thumb) return;
+      // Width is derived from the rendered height so the ratio holds at any
+      // breakpoint; height is explicit in CSS, so this is valid even at width 0.
+      var w = on ? Math.round(thumb.offsetHeight * THUMB_RATIO) : 0;
+      if (instant) {
+        thumb.style.width = w + "px";
+        thumb.style.marginRight = (on ? THUMB_GAP : 0) + "px";
+        thumb.style.opacity = on ? "1" : "0";
+        return;
+      }
+      window.gsap.to(thumb, {
+        width: w,
+        marginRight: on ? THUMB_GAP : 0,
+        opacity: on ? 1 : 0,
+        duration: 0.45,
+        ease: THUMB_EASE
+      });
+    }
+
+    function focusLink(activeRow) {
       var instant = reducedMotion() || !window.gsap;
+
+      Array.prototype.forEach.call(rows, function (row) {
+        setRow(row, row === activeRow, instant);
+      });
+
       // Only the nav anchors dim. The contact block is a destination, not a
-      // peer of the links — dimming it made hovering a nav item look like it
-      // was switching contact off.
+      // peer of the links, so it is never dimmed.
       Array.prototype.forEach.call(navLinks, function (l) {
-        var dim = active && l !== active;
+        var dim = activeRow && !activeRow.contains(l);
         if (instant) {
           l.style.opacity = dim ? "0.35" : "1";
         } else {
           window.gsap.to(l, { opacity: dim ? 0.35 : 1, duration: 0.25 });
         }
       });
-      // Never fade in a sourceless image. The element ships with no asset until
-      // per-link images exist, and an empty <img> carrying aspect-ratio and a
-      // border-radius paints as a thin sliver rather than nothing at all.
-      if (!media || !(media.getAttribute("src") || media.getAttribute("srcset"))) return;
-      var show = active ? 1 : 0;
-      if (instant) media.style.opacity = String(show);
-      else window.gsap.to(media, { opacity: show, duration: 0.3 });
     }
 
-    Array.prototype.forEach.call(links, function (link) {
-      // Pointer and keyboard both drive it, so the image is not a hover-only
-      // affordance — guidelines, 1.4.13.
-      link.addEventListener("mouseenter", function () { focusLink(link); });
-      link.addEventListener("focus", function () { focusLink(link); });
-      link.addEventListener("mouseleave", function () { focusLink(null); });
-      link.addEventListener("blur", function () { focusLink(null); });
+    // Handlers go on the ROW, not the link, so moving the pointer onto the
+    // revealed image does not count as leaving. Keyboard focus on the link
+    // inside drives the same thing.
+    Array.prototype.forEach.call(rows, function (row) {
+      row.addEventListener("mouseenter", function () { focusLink(row); });
+      row.addEventListener("mouseleave", function () { focusLink(null); });
+      var a = row.querySelector("a");
+      if (!a) return;
+      a.addEventListener("focus", function () { focusLink(row); });
+      a.addEventListener("blur", function () { focusLink(null); });
     });
 
     /* ------------------------------------------------------------ wiring -- */
