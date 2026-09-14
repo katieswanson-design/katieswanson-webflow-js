@@ -986,42 +986,64 @@ the motion, the focus handling and the toggle's state. Nothing else.
 
 ### The reveal
 
-The panel is **revealed behind a curved diagonal edge**. Nothing sweeps over the
-top of anything, no shape is painted, and there is no colour wipe — the panel
-itself is what arrives.
+The panel **drops down from the top** and is revealed behind a **curved diagonal
+bottom edge**. Nothing sweeps over the page, no shape is painted, and there is no
+colour wipe — the panel itself is what arrives. An SVG `<clipPath>` does the work;
+the path `d` is recomputed each frame from three numbers.
 
-The edge runs from a point on the top viewport edge to a point on the bottom
-edge, the bottom point trailing the top by `DIAGONAL × viewport height` — that
-trail is what tilts it. Its quadratic control point is pushed back along the
-direction of travel by `BOW`, so it is always bowed rather than straight, and
-bows further mid-travel:
+The bottom edge runs from `(0, progress × h)` on the left to
+`(w, progress × h × (1 + DIAGONAL))` on the right — the right side travelling
+further is what tilts it, matching the reference's `100%` vs `175%`. Its control
+point is pushed down in the direction of travel:
 
 ```
-bow = width × (BOW_BASE + BOW_PEAK × sin(progress × pi))
+bow = h × BOW × sin(progress × pi)
 ```
 
-**Closing reverses the same tween** rather than continuing through, so the edge
-retreats along the diagonal it arrived on. An interrupted animation reverses
-from wherever it actually got to — `progress` is kept outside the timeline for
-exactly that reason, and the duration is scaled by the remaining distance so a
-half-open menu does not take a full `SWEEP` to close.
+`sin` rather than a constant so the edge is exactly flat at `progress 0` — a
+constant bow would hang a visible sliver below the top edge before the menu opens.
 
-Four tunables at the top of the file:
+**Closing reverses the same tween** rather than continuing through. An interrupted
+animation resumes from wherever it got to: `progress` is kept outside the timeline
+for exactly that, and the duration scales by the distance left, so a half-open
+menu does not take a full `SWEEP` to close.
 
-| | |
-|---|---|
-| `SWEEP` | duration of a full reveal |
-| `DIAGONAL` | trail as a multiple of viewport height — `1` is 45° |
-| `BOW_BASE` | curvature at rest, fraction of viewport width |
-| `BOW_PEAK` | extra curvature at mid-travel |
+### Timings
 
-An SVG `<clipPath>` is used rather than `clip-path: path()`. The two are
-equivalent in behaviour — both clip to the element's border box — and this one
-was simply written first.
+| | | |
+|---|---|---|
+| `SWEEP` | 1.35 | container reveal, both directions |
+| `EASE` | `power3.inOut` | quart. **GSAP's scale is one off the classic names**: power1 = quad, power2 = cubic, **power3 = quart**, power4 = quint |
+| `DIAGONAL` | 0.75 | how much further the right of the edge travels, as a fraction of viewport height |
+| `BOW` | 0.18 | peak curvature of that edge |
+| `LINK_DURATION` | 0.6 | link cascade in |
+| `LINK_STAGGER` | 0.06 | 60ms between links |
+| `LINK_EASE` | `power3.out` | |
+| `LINK_OUT_DURATION` | 0.65 | the exit has its OWN numbers, not a fraction of the entry |
+| `LINK_OUT_EASE` | `power3.inOut` | |
+| `PAGE_PUSHED` | `rot 10, x 300, y 450, scale 1.5` | where the page goes |
+| `THUMB_RATIO` / `THUMB_GAP` | `16/10` / `20` | inline thumbnail |
 
-**GSAP core only.** No MorphSVG, no ScrollTrigger, no paid plugin: the path `d`
-is three numbers recomputed each frame. Without GSAP the menu opens and closes
-unclipped, so pages that do not load GSAP degrade rather than break.
+The reference specifies 800ms `easeOutQuart`. **This is deliberately slower and
+eased at both ends.** `easeOut` front-loads motion — most of the distance is
+covered in the first third — so it reads fast no matter how long you make it, and
+lengthening one mostly stretches a tail nobody sees. Katie tuned to 1.35 / inOut.
+
+### Hover: inline thumbnails
+
+Each link sits in a `.nav-menu_row` alongside an `<img.nav-menu_thumb>` that is
+`width: 0` at rest. On hover the thumb opens to `height × THUMB_RATIO` with a
+`THUMB_GAP` margin and **pushes the word across** — the picture is revealed inline
+at the start of the link, not parked elsewhere on the panel.
+
+Handlers are on the **row**, not the link, so moving the pointer onto the revealed
+image does not count as leaving. Keyboard focus on the link drives the same reveal.
+
+Only the six nav anchors dim; the contact block never does — it is a destination,
+not a peer of the links.
+
+**The script refuses to reveal a thumb with no `src`.** An empty `<img>` carrying
+`aspect-ratio` and a `border-radius` paints as a thin sliver rather than nothing.
 
 ### The page push, and the transform trap
 
@@ -1095,11 +1117,15 @@ timeline and starts the opposite one.
 ```html
 <button data-nav-toggle aria-expanded="false" aria-controls="nav-menu">menu</button>
 <div id="nav-menu" data-nav-menu role="dialog" aria-label="menu">
-  <a class="nav-menu_display">…</a>      <!-- also on the "contact" label: this is
-                                              the menu's display TYPE, not a link
-                                              class. The script staggers whatever
-                                              carries it. -->
-  <img data-nav-menu-media>        <!-- optional; fades in on link hover -->
+  <div class="nav-menu_row">
+    <img class="nav-menu_thumb" data-nav-menu-thumb>   <!-- width 0 until hovered -->
+    <a class="nav-menu_display">…</a>
+  </div>
+  …
+  <div class="nav-menu_contact">     <!-- reveals as ONE unit: label + email -->
+    <div class="nav-menu_display">contact</div>
+    <email component instance>
+  </div>
 </div>
 ```
 
