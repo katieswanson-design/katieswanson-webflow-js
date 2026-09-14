@@ -74,8 +74,14 @@
   // GSAP's power scale maps to the classic easing names as:
   //   power1 = quad, power2 = cubic, power3 = QUART, power4 = quint
   // so easeOutQuart is power3.out — not power4, which is a step further.
-  var SWEEP = 0.8;              // container reveal, both directions
-  var EASE = "power3.out";      // easeOutQuart ~ cubic-bezier(0.25, 1, 0.5, 1)
+  // Container reveal. The reference runs 800ms easeOutQuart; this is slower and
+  // eased in as well as out, because easeOut front-loads the motion — most of
+  // the distance is covered in the first third, so an ease-out reads fast no
+  // matter how long you make it. Lengthening one mostly stretches a tail nobody
+  // sees. inOut keeps the quart character but gives the entry somewhere to
+  // start from.
+  var SWEEP = 1.35;             // container reveal, both directions
+  var EASE = "power3.inOut";    // quart, eased both ends
   var DIAGONAL = 0.75;   // how much lower the right of the bottom edge lands
                          // than the left, as a fraction of viewport height.
                          // The reference uses 175% vs 100%, i.e. 0.75.
