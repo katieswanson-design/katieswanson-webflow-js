@@ -402,7 +402,10 @@
           window.gsap.to(l, { opacity: dim ? 0.35 : 1, duration: 0.25 });
         }
       });
-      if (!media) return;
+      // Never fade in a sourceless image. The element ships with no asset until
+      // per-link images exist, and an empty <img> carrying aspect-ratio and a
+      // border-radius paints as a thin sliver rather than nothing at all.
+      if (!media || !(media.getAttribute("src") || media.getAttribute("srcset"))) return;
       var show = active ? 1 : 0;
       if (instant) media.style.opacity = String(show);
       else window.gsap.to(media, { opacity: show, duration: 0.3 });
