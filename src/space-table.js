@@ -91,6 +91,12 @@
       button._spaceTimer = setTimeout(function () {
         button._spaceTimer = null;
         setLabel(button, IDLE_LABEL);
+        // Empty the live region as well as restoring the label. A live region
+        // announces on CHANGE, so leaving the previous sentence sitting in it
+        // means copying the same space twice writes an identical string the
+        // second time — no change, and several screen readers stay silent.
+        // Clearing does not interrupt the announcement already queued.
+        announce("");
       }, REVERT_MS);
     }
 
