@@ -1,0 +1,58 @@
+/**
+ * space-table.css — the two things the Webflow Designer cannot express for the
+ * unicode space table on /space.
+ *
+ * Everything else belongs on Designer classes, where it belongs: the grid and
+ * its shared column template, the row rule, the code chips, the type, the
+ * button's hit area. This file is deliberately two rules long.
+ *
+ * Pairs with src/space-table.js, which puts the real character into each mark.
+ */
+
+/* 1 ------------------------------------------------------------------------
+ * Do not collapse the space being demonstrated.
+ *
+ * Each mark holds one space character and nothing else. Under normal HTML
+ * white-space processing that character collapses to a single rendered space,
+ * and a leading or trailing one collapses away completely — so every row in the
+ * table would render at the same width, which is the one thing this page exists
+ * to disprove. `pre` preserves the glyph's real advance width.
+ *
+ * `position: relative` is here rather than in the Designer because rule 2
+ * depends on it: the pseudo-element is positioned against this box, and a
+ * Designer edit that dropped it would move the floor line to the page corner.
+ * The rest of the mark's appearance — display, height, background — stays on
+ * the Designer class.
+ */
+[data-space-mark] {
+  white-space: pre;
+  position: relative;
+}
+
+/* 2 ------------------------------------------------------------------------
+ * A visible floor for the spaces narrower than one pixel.
+ *
+ * Zero-width space is genuinely 0px and hair space is around 0.7px, so both
+ * would paint nothing at all and their rows would look broken rather than
+ * informative.
+ *
+ * This draws a 1px rule at the mark's leading edge. It is an absolutely
+ * positioned pseudo-element, so it contributes nothing to layout: the mark's
+ * own width stays exactly the character's advance, and every wider space simply
+ * covers this line with its own background.
+ *
+ * Widening the mark itself — `min-width: 1px` — was the alternative and was
+ * rejected. It would report a false width on the only two rows where the true
+ * value is the interesting one.
+ *
+ * `inset-block` rather than top/bottom so this still lands correctly if the
+ * table is ever set in a vertical writing mode.
+ */
+[data-space-mark]::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 1px;
+  background: var(--surface--accent);
+}
