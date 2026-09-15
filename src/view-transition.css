@@ -39,10 +39,29 @@
 [data-vt="cs-02"] { view-transition-name: cs-02; }
 [data-vt="cs-03"] { view-transition-name: cs-03; }
 
-/* The nav is identical on both ends, so let it persist instead of being
- * cross-faded along with the rest of the root snapshot. If the nav ever
- * behaves oddly mid-transition, this is the first line to remove. */
-.site-nav { view-transition-name: site-nav; }
+/* There is deliberately no view-transition-name on the nav.
+ *
+ * An earlier version named `.site-nav` so the nav would persist rather than
+ * cross-fade with the root snapshot. That class no longer exists — the nav was
+ * rebuilt as the `nav` component, whose root is an unclassed <div> — so the
+ * rule had been dead for some time. Removed 2026-09-15 rather than re-pointed,
+ * for two reasons:
+ *
+ *   1. It is no longer needed. The nav went onto the case study pages on
+ *      2026-09-15, so it now exists on BOTH ends of a home → case study
+ *      navigation and cross-fades to an identical nav, which is invisible.
+ *      The visible fade-out it was written to prevent only happened because
+ *      the incoming page had no nav at all.
+ *
+ *   2. Naming it would risk the blend. `.nav-top` and `.nav-bottom` carry
+ *      `mix-blend-mode: difference`, which composites against whatever is
+ *      behind them. A named element is snapshotted and composited separately
+ *      from the root, so the thing it blends against changes mid-transition.
+ *      Untested, but the wrong kind of surprise to court for no gain.
+ *
+ * The small cost: the cycling role label and the clock differ between the two
+ * snapshots, so those two bits of text cross-fade instead of sitting still.
+ */
 
 /* -------------------------------------------------------------- TIMING ---
  * Matches the easing used by the hero panels so the site has one motion
@@ -55,10 +74,6 @@
 ::view-transition-group(cs-03) {
   animation-duration: 0.5s;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-::view-transition-group(site-nav) {
-  animation-duration: 0.3s;
 }
 
 /* ------------------------------------------------------ REDUCED MOTION ---
