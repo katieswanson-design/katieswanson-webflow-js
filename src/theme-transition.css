@@ -1,0 +1,70 @@
+/**
+ * theme-transition.css — ease the colour change when the mode switches.
+ *
+ * Why this cannot be a transition on :root
+ *
+ *   The obvious version does nothing:
+ *
+ *     :root { transition: background-color 400ms ease, color 400ms ease; }
+ *
+ *   A transition animates a property changing ON THE ELEMENT THAT DECLARES IT.
+ *   Switching mode does not change :root's own background — it changes the
+ *   custom properties :root holds. Every element that reads
+ *   var(--surface--primary) recomputes instantly, and custom properties do not
+ *   carry a transition down to the elements that consume them.
+ *
+ *   Measured on the published sandbox before writing this: with the transition
+ *   on :root, a child whose background-color came from a custom property went
+ *   #ffffff -> #0d1826 in a single frame, no intermediate values. With the
+ *   transition declared on the child (below) the same flip sampled at
+ *   rgb(202,204,207), rgb(116,122,130), rgb(49,58,70), rgb(25,36,49),
+ *   rgb(15,26,40), rgb(13,24,38) — a real curve.
+ *
+ * Why it is scoped to a class rather than always on
+ *
+ *   `*` with a permanent colour transition would slow every hover, focus and
+ *   state change on the site to the theme's timing, and would fight the
+ *   transitions those components declare for themselves. So mode-switch.js
+ *   adds `u-theme-anim` to <html> for the length of the switch and takes it off
+ *   again. Outside that window this file costs nothing.
+ *
+ * Why this is not in the Designer
+ *
+ *   Two things here are outside what Webflow can express: the descendant
+ *   combinator (`.u-theme-anim *`) and the prefers-reduced-motion query.
+ *   Agreed with Katie 2026-09-15 before the file was created.
+ *
+ * Properties are listed explicitly, never `all` — `all` would animate layout
+ * properties and cause jank. text-decoration-color is in the list because
+ * border/accent became mode-aware on 2026-09-15, so the .text-link underline
+ * genuinely changes colour between modes. fill and stroke cover inline SVG
+ * that inherits currentColor, such as .ic-arrow.
+ */
+
+.u-theme-anim,
+.u-theme-anim *,
+.u-theme-anim *::before,
+.u-theme-anim *::after {
+  transition-property: background-color, color, border-color, outline-color,
+                       text-decoration-color, fill, stroke;
+  transition-duration: 400ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/**
+ * Reduced motion: no transition at all. The mode still changes, it just
+ * arrives instantly — which is the correct reduced-motion variant for a
+ * colour wash, not a slower one.
+ *
+ * This guard lives here as well as in mode-switch.js on purpose. The JS skips
+ * adding the class, and this makes the rule inert even if the class is applied
+ * some other way.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .u-theme-anim,
+  .u-theme-anim *,
+  .u-theme-anim *::before,
+  .u-theme-anim *::after {
+    transition-property: none;
+  }
+}

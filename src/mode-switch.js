@@ -56,6 +56,10 @@
  * only code that runs before paint. This file assumes the class is already
  * correct when it loads and reads its initial state from the DOM.
  *
+ * The boot script deliberately does NOT add the transition class — the first
+ * paint should arrive in the right mode, not animate into it. Only a
+ * deliberate switch animates. See theme-transition.css.
+ *
  * With no JS at all: the page renders in whatever mode the boot script chose,
  * and the button does nothing. Nothing is broken, it just cannot be changed.
  */
@@ -77,6 +81,36 @@
   var media = window.matchMedia
     ? window.matchMedia('(prefers-color-scheme: dark)')
     : null;
+
+  // Eases the colour change. The transition itself lives in
+  // theme-transition.css, which explains why it cannot be declared on :root —
+  // custom properties do not carry a transition to the elements that read
+  // them, so the rule has to sit on the elements that actually paint. This
+  // class switches it on for the length of the change and off again, so the
+  // site is not carrying a colour transition on every element permanently.
+  var ANIM_CLASS = 'u-theme-anim';
+  var ANIM_MS = 400;
+  var animTimer = null;
+  var reduceMotion = window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : null;
+
+  /**
+   * Reduced motion gets no transition at all — the mode still changes, it just
+   * arrives instantly, which is the right variant for a colour wash rather
+   * than a slower one. The stylesheet guards this too; belt and braces.
+   */
+  function beginTransition() {
+    if (reduceMotion && reduceMotion.matches) return;
+    root.classList.add(ANIM_CLASS);
+    window.clearTimeout(animTimer);
+    // A little past the declared duration, so the class is never pulled while
+    // the transition is still running. Repeated clicks restart the timer
+    // rather than stacking, so the class always comes off exactly once.
+    animTimer = window.setTimeout(function () {
+      root.classList.remove(ANIM_CLASS);
+    }, ANIM_MS + 60);
+  }
 
   function isDark() {
     return root.classList.contains(DARK_CLASS);
@@ -136,6 +170,7 @@
   );
 
   function apply(dark) {
+    beginTransition();
     root.classList.toggle(DARK_CLASS, dark);
     syncThemeColor();
     buttons.forEach(label);
