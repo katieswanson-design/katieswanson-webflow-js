@@ -71,12 +71,35 @@ git tag "$NEXT"
 git push -q origin HEAD --tags
 echo "tagged and pushed: $NEXT"
 echo
+# ---- Only what CHANGED needs a new Webflow registration --------------------
+# A registration pinned at an older tag is not stale — it is immutable, and
+# that is the point. It only goes stale when the file behind it changes and
+# the registration is left pointing at the old bytes. So the thing worth
+# printing is the short list of files this release actually touched, not a
+# hash for all twenty every time. (The nav-menu 1.0.74-vs-1.0.63 mismatch
+# happened precisely because the signal was buried in that noise.)
+if [[ -n "$LATEST" ]]; then
+  CHANGED=$(git diff --name-only "$LATEST" HEAD -- 'src/*.js' 'src/*.css')
+else
+  CHANGED=$(ls src/*.js src/*.css 2>/dev/null)   # first ever release
+fi
+
+if [[ -z "$CHANGED" ]]; then
+  echo "No src/ file changed since ${LATEST}. Nothing to re-register in Webflow."
+  echo "Every existing registration stays valid — do not bump anything."
+  exit 0
+fi
+
 echo "Waiting for jsDelivr to pick up the new tag..."
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-for f in src/*.js src/*.css; do
+FAILED=0
+OUTPUT=""
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  [ -e "$f" ] || continue          # deleted in this release; nothing to serve
   URL="https://cdn.jsdelivr.net/gh/${REPO}@${NEXT}/${f}"
   OUT="$TMP/$(basename "$f")"
   OK=""
@@ -87,21 +110,42 @@ for f in src/*.js src/*.css; do
   if [[ -z "$OK" ]]; then
     echo "  !! $f — jsDelivr not serving $NEXT yet. Retry later with:"
     echo "     curl -sL $URL | openssl dgst -sha384 -binary | openssl base64 -A"
+    FAILED=1
     continue
   fi
   # Compare raw bytes — never via $(...), which strips trailing newlines and
   # would yield a hash the browser rejects.
   if ! cmp -s "$OUT" "$f"; then
     echo "  !! $f — CDN bytes differ from the committed file; not printing a hash"
+    FAILED=1
     continue
   fi
   HASH=$(openssl dgst -sha384 -binary "$OUT" | openssl base64 -A)
-  echo
-  echo "  $f"
-  echo "    url:  $URL"
-  echo "    sri:  sha384-${HASH}"
-done
+  OUTPUT+="
+  $f
+    url:  $URL
+    sri:  sha384-${HASH}
+"
+done <<< "$CHANGED"
 
 echo
-echo "Update the Webflow registered script with the url + sri above"
-echo "(Site settings > Custom code, or ask Claude to do it via the Webflow MCP)."
+echo "═══════════════════════════════════════════════════════════════════"
+echo " CHANGED in ${NEXT} — these Webflow registrations need bumping:"
+echo "═══════════════════════════════════════════════════════════════════"
+printf '%s\n' "$OUTPUT"
+
+UNCHANGED=$(comm -23 \
+  <(ls src/*.js src/*.css 2>/dev/null | sort) \
+  <(printf '%s\n' "$CHANGED" | sort) | tr '\n' ' ')
+if [[ -n "${UNCHANGED// /}" ]]; then
+  echo " Unchanged, leave pinned where they are:"
+  echo "   ${UNCHANGED}"
+  echo
+fi
+
+echo "Bump only the files listed above (Site settings > Custom code, or ask"
+echo "Claude to do it via the Webflow MCP), then PUBLISH — a registration"
+echo "change is not live until the site is published."
+echo
+echo "Afterwards, ./check-pins.sh verifies the live pages against this repo."
+[[ "$FAILED" -eq 0 ]] || exit 1
