@@ -56,3 +56,23 @@
   width: 1px;
   background: var(--surface--accent);
 }
+
+/* 3 ------------------------------------------------------------------------
+ * Let a long entity name wrap instead of being cut in half.
+ *
+ * `&ZeroWidthSpace;` is seventeen monospaced characters — about 140px — and at
+ * 390px the entity column is roughly 91px wide. `.code` carries
+ * `overflow: hidden`, so without this the name is silently truncated to
+ * `&ZeroWidthS`, which is not merely ugly: it is a different string from the
+ * one the row is documenting, and a reader could copy it by eye and wonder why
+ * it does nothing.
+ *
+ * `anywhere` rather than `break-word` because the name contains no spaces or
+ * hyphens, so there is no break opportunity for a gentler rule to find.
+ *
+ * Scoped to the table so the shared `.code` class keeps its behaviour
+ * everywhere else.
+ */
+.space-row .code {
+  overflow-wrap: anywhere;
+}
