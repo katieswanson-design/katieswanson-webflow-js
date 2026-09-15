@@ -1,70 +1,128 @@
 /**
  * theme-transition.css — ease the colour change when the mode switches.
  *
- * Why this cannot be a transition on :root
+ * This animates the TOKENS, not the elements. That is the whole idea, and it
+ * took two wrong versions to get here, both recorded below so nobody rebuilds
+ * them.
  *
- *   The obvious version does nothing:
+ * ── Wrong version 1: transition on :root ────────────────────────────────────
  *
  *     :root { transition: background-color 400ms ease, color 400ms ease; }
  *
- *   A transition animates a property changing ON THE ELEMENT THAT DECLARES IT.
- *   Switching mode does not change :root's own background — it changes the
- *   custom properties :root holds. Every element that reads
- *   var(--surface--primary) recomputes instantly, and custom properties do not
- *   carry a transition down to the elements that consume them.
+ *   Does nothing. A transition animates a property changing ON THE ELEMENT
+ *   THAT DECLARES IT. Switching mode does not change :root's own background —
+ *   it changes the custom properties :root holds. Measured: a child reading
+ *   var(--surface--primary) went #ffffff -> #0d1826 in a single frame.
  *
- *   Measured on the published sandbox before writing this: with the transition
- *   on :root, a child whose background-color came from a custom property went
- *   #ffffff -> #0d1826 in a single frame, no intermediate values. With the
- *   transition declared on the child (below) the same flip sampled at
- *   rgb(202,204,207), rgb(116,122,130), rgb(49,58,70), rgb(25,36,49),
- *   rgb(15,26,40), rgb(13,24,38) — a real curve.
+ * ── Wrong version 2: transition on * ────────────────────────────────────────
  *
- * Why it is scoped to a class rather than always on
+ *   Animates, but `color` is an INHERITED property, so every element in a
+ *   chain ends up chasing its parent's already-animating value. The parent
+ *   finishes, the child is still lagging, its target freezes, and a fresh
+ *   transition starts from wherever it had got to. Measured on the hero text:
  *
- *   `*` with a permanent colour transition would slow every hover, focus and
- *   state change on the site to the theme's timing, and would fight the
- *   transitions those components declare for themselves. So mode-switch.js
- *   adds `u-theme-anim` to <html> for the length of the switch and takes it off
- *   again. Outside that window this file costs nothing.
+ *       33ms  transitionstart color
+ *      415ms  transitionend   color     <- parent done
+ *      448ms  transitionstart color     <- child restarts, visible blink
+ *      832ms  transitionend   color
  *
- * Why this is not in the Designer
+ *   That discontinuity is what read as "the text blinks". It hits any text
+ *   that inherits its colour, which is most of the site.
  *
- *   Two things here are outside what Webflow can express: the descendant
- *   combinator (`.u-theme-anim *`) and the prefers-reduced-motion query.
- *   Agreed with Katie 2026-09-15 before the file was created.
+ *   Restricting the inherited properties to `body` alone fixes the echo but
+ *   introduces something worse: the ~38 rules that declare their own
+ *   token-driven `color` then snap at t=0 while the background eases over
+ *   400ms. Going dark -> light that puts dark text on a still-dark background
+ *   for most of the transition — a contrast hole, not just an aesthetic one.
  *
- * Properties are listed explicitly, never `all` — `all` would animate layout
- * properties and cause jank. text-decoration-color is in the list because
- * border/accent became mode-aware on 2026-09-15, so the .text-link underline
- * genuinely changes colour between modes. fill and stroke cover inline SVG
- * that inherits currentColor, such as .ic-arrow.
+ * ── What actually works ─────────────────────────────────────────────────────
+ *
+ *   Register the semantic colour tokens as typed colours and transition the
+ *   TOKENS. Every consumer — inheriting or declaring, text or background or
+ *   border — reads a value that is already moving, so nothing needs a
+ *   transition of its own and nothing can lag behind anything else. Text and
+ *   background stay in step for the whole 400ms, so contrast holds throughout.
+ *
+ *   No `*` selector, so outside the switch this file costs nothing and never
+ *   interferes with hover or focus transitions.
+ *
+ *   A custom property can only be transitioned once it has a registered type —
+ *   an unregistered one is just a token string, and strings do not interpolate.
+ *   Hence the @property block. `inherits: true` matches how Webflow's tokens
+ *   already behave.
+ *
+ * ── Maintenance ─────────────────────────────────────────────────────────────
+ *
+ *   The names are Webflow-generated and the initial-values are the BASE (light)
+ *   values as published on 2026-09-15. If a token is renamed or a new semantic
+ *   colour is added, its registration must be added here or it will simply stop
+ *   animating — it will not break, it will just cut instantly again.
+ *
+ *   initial-value cannot contain var(), so these must stay literal. They are
+ *   only the fallback for an unparseable value; Webflow's own :root and .u-dark
+ *   declarations still supply the real ones.
+ *
+ * ── Why not in the Designer ─────────────────────────────────────────────────
+ *
+ *   @property and prefers-reduced-motion are both outside what Webflow can
+ *   author. Agreed with Katie 2026-09-15 before the file was created.
  */
 
-.u-theme-anim,
-.u-theme-anim *,
-.u-theme-anim *::before,
-.u-theme-anim *::after {
-  transition-property: background-color, color, border-color, outline-color,
-                       text-decoration-color, fill, stroke;
+@property --surface--primary        { syntax: '<color>'; inherits: true; initial-value: #fff; }
+@property --surface--secondary      { syntax: '<color>'; inherits: true; initial-value: #f1f4f9; }
+@property --surface--raised         { syntax: '<color>'; inherits: true; initial-value: #fff; }
+@property --surface--inverse        { syntax: '<color>'; inherits: true; initial-value: #0d1826; }
+@property --surface--inverse-raised { syntax: '<color>'; inherits: true; initial-value: #1f334e; }
+@property --surface--accent         { syntax: '<color>'; inherits: true; initial-value: #4ca077; }
+@property --surface--accent-subtle  { syntax: '<color>'; inherits: true; initial-value: #d6eede; }
+@property --surface--static-inverse { syntax: '<color>'; inherits: true; initial-value: #fff; }
+
+@property --text--primary           { syntax: '<color>'; inherits: true; initial-value: #0d1826; }
+@property --text--secondary         { syntax: '<color>'; inherits: true; initial-value: #51565c; }
+@property --text--tertiary          { syntax: '<color>'; inherits: true; initial-value: #6d7279; }
+@property --text--inverse           { syntax: '<color>'; inherits: true; initial-value: #fcfdfe; }
+@property --text--accent            { syntax: '<color>'; inherits: true; initial-value: #307e5b; }
+@property --text--static-primary    { syntax: '<color>'; inherits: true; initial-value: #0d1826; }
+
+@property --border--subtle          { syntax: '<color>'; inherits: true; initial-value: #e1e5ea; }
+@property --border--interactive     { syntax: '<color>'; inherits: true; initial-value: #8e9299; }
+@property --border--inverse         { syntax: '<color>'; inherits: true; initial-value: #fcfdfe; }
+@property --border--accent          { syntax: '<color>'; inherits: true; initial-value: #307e5b; }
+
+/**
+ * The tokens are declared on :root and overridden by .u-dark, both of which
+ * are <html> — so <html> is the element whose computed values change, and the
+ * transition has to live there. mode-switch.js adds u-theme-anim for the
+ * length of the switch and removes it again.
+ *
+ * Three of these are identical in both modes (surface/accent,
+ * surface/static-inverse, text/static-primary). Listing them is harmless —
+ * a property that does not change simply does not animate — and means they
+ * are already covered if either ever becomes mode-aware.
+ */
+.u-theme-anim {
+  transition-property:
+    --surface--primary, --surface--secondary, --surface--raised,
+    --surface--inverse, --surface--inverse-raised, --surface--accent,
+    --surface--accent-subtle, --surface--static-inverse,
+    --text--primary, --text--secondary, --text--tertiary,
+    --text--inverse, --text--accent, --text--static-primary,
+    --border--subtle, --border--interactive, --border--inverse,
+    --border--accent;
   transition-duration: 400ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /**
  * Reduced motion: no transition at all. The mode still changes, it just
- * arrives instantly — which is the correct reduced-motion variant for a
- * colour wash, not a slower one.
+ * arrives instantly — the correct reduced-motion variant for a colour wash
+ * rather than a slower one.
  *
- * This guard lives here as well as in mode-switch.js on purpose. The JS skips
- * adding the class, and this makes the rule inert even if the class is applied
- * some other way.
+ * mode-switch.js also skips adding the class, and reset.css collapses
+ * transition durations globally. Three independent layers.
  */
 @media (prefers-reduced-motion: reduce) {
-  .u-theme-anim,
-  .u-theme-anim *,
-  .u-theme-anim *::before,
-  .u-theme-anim *::after {
+  .u-theme-anim {
     transition-property: none;
   }
 }
