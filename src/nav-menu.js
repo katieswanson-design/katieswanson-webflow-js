@@ -394,9 +394,44 @@
     }
 
     var THUMB_RATIO = 16 / 10;   // matches aspect-ratio on .nav-menu_thumb
-    var THUMB_GAP = 20;          // px between the thumb and the word
+    var THUMB_GAP = 16;          // px between the thumb and the word
     var THUMB_EASE = "power3.out";
     var rows = panel.querySelectorAll(".nav-menu_row");
+
+    /* ------------------------------------------------- static thumbs ---
+     * Below 992 the preview images are static: always visible, sized by CSS,
+     * no hover reveal — because there is no hover on the devices in that range.
+     *
+     * This has to be a guard in the script rather than a CSS override. The
+     * reveal is driven by INLINE styles (see setRow), and inline beats any
+     * stylesheet rule, so a CSS `opacity: 1` at the tablet breakpoint would be
+     * silently overruled. It is not even a hover problem: resetLinks() runs
+     * from applyState() at init on every device, so without this guard every
+     * thumb is stamped `width: 0; opacity: 0` inline the moment the page loads
+     * and the static images never appear at all.
+     */
+    var HOVER_THUMBS = window.matchMedia("(min-width: 992px)");
+
+    function clearThumb(thumb) {
+      thumb.style.removeProperty("width");
+      thumb.style.removeProperty("margin-right");
+      thumb.style.removeProperty("opacity");
+    }
+
+    function clearAllThumbs() {
+      Array.prototype.forEach.call(rows, function (row) {
+        var thumb = row.querySelector("[data-nav-menu-thumb]");
+        if (thumb) clearThumb(thumb);
+      });
+    }
+
+    // Crossing the boundary either way has to hand ownership over cleanly:
+    // going narrow, drop the inline values so CSS can show the static image;
+    // going wide, park every thumb closed so the next hover opens from zero.
+    HOVER_THUMBS.addEventListener("change", function () {
+      if (HOVER_THUMBS.matches) resetLinks();
+      else clearAllThumbs();
+    });
 
     // Each row is [thumb, link]. The thumb sits at width 0 until its row is
     // hovered, then opens and pushes the word across — the reference reveals
@@ -405,6 +440,15 @@
     function setRow(row, on, instant) {
       var thumb = row.querySelector("[data-nav-menu-thumb]");
       if (!thumb) return;
+
+      // Static below 992: clear anything previously written inline and leave
+      // the thumb to the stylesheet. Clearing rather than simply returning
+      // matters — a resize down from desktop would otherwise strand the
+      // closed-state `width: 0` on the element.
+      if (!HOVER_THUMBS.matches) {
+        clearThumb(thumb);
+        return;
+      }
       // Width is derived from the rendered height so the ratio holds at any
       // breakpoint; height is explicit in CSS, so this is valid even at width 0.
       var w = on ? Math.round(thumb.offsetHeight * THUMB_RATIO) : 0;
