@@ -329,3 +329,49 @@ html {
     scroll-padding-top: 8rem;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Clearance for the fixed bottom bar.
+ *
+ * Both nav bars are `position: fixed` and `.page-main` has no padding, so at
+ * full scroll the last of a page's content sits underneath nav-bottom. On
+ * /space that is the unicode table: the bar's "i need some space" link lands on
+ * top of a data row. Against the guidelines — sticky headers and footers never
+ * cover content.
+ *
+ * The padding goes on the last SECTION, not on `.page-main`. Putting it on
+ * `.page-main` would work geometrically but would paint the gap in the page
+ * background, leaving a light band under the dark `.section-footer` that ends
+ * several pages. Inside the section, the section's own background extends
+ * behind the reserved space and nothing changes visually except that content
+ * stops higher.
+ *
+ * Measured bar heights, not guessed:
+ *   desktop / tablet ... 90.4px  (2rem + 26.4 content + 2rem)
+ *   767 ................ 62.4px  (the meta links are hidden here, so the
+ *                                 content is just the location and clock)
+ *   479 and below ...... bar is display:none, so no reservation at all
+ *
+ * The values below are the next round step up from each, which is deliberate:
+ * a clearance that exactly equals the bar height leaves content touching it.
+ *
+ * `:last-child` on a varying set of section classes is not expressible in the
+ * Webflow Designer, which is why this is here rather than on a class.
+ */
+.page-main > :last-child {
+  padding-bottom: 6rem;
+}
+
+@media (max-width: 767px) {
+  .page-main > :last-child {
+    padding-bottom: 4.5rem;
+  }
+}
+
+/* nav-bottom is hidden at this width, so reserving space for it would be a
+ * gap with nothing in it. */
+@media (max-width: 479px) {
+  .page-main > :last-child {
+    padding-bottom: 0;
+  }
+}
