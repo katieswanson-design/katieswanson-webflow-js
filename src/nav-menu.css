@@ -155,3 +155,34 @@
     flex: 0 0 auto;
   }
 }
+
+/* 6 ------------------------------------------------------------------------
+ * Centring the menu must never hide the top of it.
+ *
+ * `.nav-menu` centres its content and also scrolls (`overflow: auto`). Those
+ * two together have a well-known failure: when the content is TALLER than the
+ * box, `justify-content: center` overflows it equally in both directions, and
+ * the part above the top edge cannot be scrolled to — there is no scroll
+ * position further back than zero. The menu then looks bottom-aligned and its
+ * first links are simply unreachable.
+ *
+ * That is not hypothetical here. It happened at 767 while the display type was
+ * still at the tablet size (content 1500px in an 889px box put the first link
+ * at -310px), and it is waiting to happen again at 390, where nav-top is
+ * 176-205px tall depending on which tagline the cycler is showing and the space
+ * left for the menu changes as it rotates.
+ *
+ * `safe` says: centre while it fits, fall back to flex-start the moment it does
+ * not, so the overflow all goes downwards where it can be scrolled to. A
+ * browser that does not understand the keyword drops the whole declaration and
+ * keeps Webflow's plain `center`, which is exactly today's behaviour — so this
+ * can only improve things.
+ *
+ * Scoped to 991 and below because that is where the menu is a single tall
+ * column; above it the two-column layout is nowhere near the viewport height.
+ */
+@media (max-width: 991px) {
+  .nav-menu {
+    justify-content: safe center;
+  }
+}
