@@ -370,6 +370,26 @@
           ease: open ? LINK_EASE : LINK_OUT_EASE
         }, open ? duration * 0.35 : 0);
       }
+
+      // Below the hover breakpoint the previews come in on their own, after the
+      // words have arrived — never at the same time, or the row appears to
+      // assemble itself in two places at once. Closing pulls them back first so
+      // the words are not left hanging in a gap the image used to fill.
+      if (!HOVER_THUMBS.matches) {
+        var thumbs = autoThumbs();
+        if (thumbs.length) {
+          timeline.to(thumbs, {
+            width: function (i, el) {
+              return open ? Math.round(el.offsetHeight * THUMB_RATIO) : 0;
+            },
+            marginRight: open ? THUMB_GAP : 0,
+            opacity: open ? 1 : 0,
+            duration: open ? THUMB_IN_DURATION : LINK_OUT_DURATION * 0.5,
+            stagger: open ? THUMB_IN_STAGGER : 0,
+            ease: THUMB_EASE
+          }, open ? duration * 0.35 + LINK_DURATION * 0.6 : 0);
+        }
+      }
     }
 
     function gsapVars(state, duration) {
@@ -398,19 +418,33 @@
     var THUMB_EASE = "power3.out";
     var rows = panel.querySelectorAll(".nav-menu_row");
 
-    /* ------------------------------------------------- static thumbs ---
-     * Below 992 the preview images are static: always visible, sized by CSS,
-     * no hover reveal — because there is no hover on the devices in that range.
+    /* --------------------------------------------- auto-reveal thumbs ---
+     * Below 992 there is no hover, so the previews are not a hover affordance.
+     * They reveal themselves: the menu opens, the words land, and then the
+     * images grow in from zero width top-down, pushing each word across.
      *
-     * This has to be a guard in the script rather than a CSS override. The
-     * reveal is driven by INLINE styles (see setRow), and inline beats any
-     * stylesheet rule, so a CSS `opacity: 1` at the tablet breakpoint would be
-     * silently overruled. It is not even a hover problem: resetLinks() runs
-     * from applyState() at init on every device, so without this guard every
-     * thumb is stamped `width: 0; opacity: 0` inline the moment the page loads
-     * and the static images never appear at all.
+     * So the same inline width/opacity the hover path writes is still the
+     * mechanism — it is just driven by the open timeline instead of a pointer.
+     * That is deliberate: a CSS-only "always visible" version cannot work here,
+     * because resetLinks() runs from applyState() at init on every device and
+     * stamps `width: 0; opacity: 0` inline, which beats any stylesheet rule.
+     *
+     * Only rows whose thumb is not `.is-thumbless` take part — the design shows
+     * images on a chosen few, not on every row.
      */
     var HOVER_THUMBS = window.matchMedia("(min-width: 992px)");
+    var THUMB_IN_DURATION = 0.55;
+    var THUMB_IN_STAGGER = 0.08;
+
+    function autoThumbs() {
+      var out = [];
+      Array.prototype.forEach.call(rows, function (row) {
+        if (getComputedStyle(row).display === "none") return;
+        var thumb = row.querySelector("[data-nav-menu-thumb]");
+        if (thumb && getComputedStyle(thumb).display !== "none") out.push(thumb);
+      });
+      return out;
+    }
 
     function clearThumb(thumb) {
       thumb.style.removeProperty("width");
@@ -441,10 +475,10 @@
       var thumb = row.querySelector("[data-nav-menu-thumb]");
       if (!thumb) return;
 
-      // Static below 992: clear anything previously written inline and leave
-      // the thumb to the stylesheet. Clearing rather than simply returning
-      // matters — a resize down from desktop would otherwise strand the
-      // closed-state `width: 0` on the element.
+      // Below 992 hover does not drive these — the open timeline does. Bail so
+      // a stray pointer event cannot open one out of sequence, and clear rather
+      // than simply return so a resize down from desktop does not strand the
+      // hover path's inline values on the element.
       if (!HOVER_THUMBS.matches) {
         clearThumb(thumb);
         return;
