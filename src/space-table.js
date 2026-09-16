@@ -35,10 +35,13 @@
   "use strict";
 
   var REVERT_MS = 1500;
-  // Sentence case to match the Figma spec, which is the one surface on the site
-  // that is not set in the all-lowercase brand treatment.
-  var IDLE_LABEL = "Copy";
-  var DONE_LABEL = "Copied";
+  // Lowercase, matching the site's brand treatment. The Figma spec drew this
+  // table in sentence case and it shipped that way, which made /space the one
+  // surface on the site not in the all-lowercase treatment; Katie chose to
+  // bring it into line 2026-09-16. The code cells beside these buttons stay
+  // exactly as authored — entity names and \uXXXX escapes are case-sensitive.
+  var IDLE_LABEL = "copy";
+  var DONE_LABEL = "copied";
 
   function initSpaceTable() {
     var rows = document.querySelectorAll("[data-space]");
