@@ -81,3 +81,77 @@
     padding-bottom: 8px;
   }
 }
+
+/* 4 ------------------------------------------------------------------------
+ * The menu toggle reserves the width of its longest label, always.
+ *
+ * The button's text alternates between "menu" and "close". Those are different
+ * widths (55.5px vs 65.3px at 767), and `.nav-top_right` is `justify-content:
+ * flex-end`, so every time the menu opened the button grew leftwards and shoved
+ * the mode switcher 10px sideways. Opening a menu should not move an unrelated
+ * control.
+ *
+ * Rather than hardcode a width, the button carries a hidden copy of the longer
+ * word and both occupy the same grid cell. The box is therefore always exactly
+ * as wide as the widest label, at every breakpoint and font size, and it stays
+ * correct if the wording ever changes — the only thing to keep in step is the
+ * `content` string below and the labels in nav-menu.js.
+ *
+ * `display: grid` and the end/centre alignment are on `.nav-label.nav-action
+ * .is-menu` in the Designer; only the parts Webflow cannot author are here.
+ * The ::after inherits `text-transform: uppercase` from `.nav-label`, so it
+ * measures the same glyphs that actually render.
+ */
+[data-nav-toggle] > [data-nav-label],
+[data-nav-toggle]::after {
+  grid-area: 1 / 1;
+}
+
+[data-nav-toggle]::after {
+  content: "close";
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 5 ------------------------------------------------------------------------
+ * Social links become icon buttons at 767 and below.
+ *
+ * Figma annotation on the mobile-horizontal frames: "swap to icons". The three
+ * links keep their words for screen readers and voice control and show only the
+ * brand mark, in a round 44x44 target.
+ *
+ * Above 767 the icons are display:none and the words render normally, so this
+ * is the same shape as the mode switcher in src/mode-toggle.css — and it is
+ * here for the same reason: the Designer's only way to hide the text is
+ * display:none, which would strip each link's accessible name and leave three
+ * unlabelled links (WCAG 4.1.2). The round box, size and background token are
+ * on `.nav-menu_display.is-secondary.is-social` in the Designer, where they
+ * belong.
+ *
+ * The icon paths are fill="currentColor", so they take the link's colour token
+ * in both modes with nothing declared here.
+ */
+[data-social-icon] {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  [data-social-label] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  [data-social-icon] {
+    display: block;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+  }
+}

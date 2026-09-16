@@ -251,7 +251,12 @@
       panel.style.visibility = open ? "visible" : "hidden";
       panel.style.pointerEvents = open ? "auto" : "none";
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
-      toggle.textContent = open ? "close" : "menu";
+      // Write the label into its span, never onto the button: the button also
+      // carries a hidden ::after that reserves the width of the longer word, and
+      // a bare textContent write here would be fighting that. Falls back to the
+      // button so older markup without the span still labels itself.
+      var toggleLabel = toggle.querySelector("[data-nav-label]") || toggle;
+      toggleLabel.textContent = open ? "close" : "menu";
       setInert(open);
       lockScroll(open);
 
