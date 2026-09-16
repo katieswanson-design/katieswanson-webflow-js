@@ -33,7 +33,7 @@
     "design engineer",
     "design enablement lead",
     "token architect",
-    "workflow and tooling builder",
+    "workflow & tooling builder",
     "applied ai practitioner",
     "playbook author",
     "certified webflow partner",
