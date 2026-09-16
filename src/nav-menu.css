@@ -186,3 +186,28 @@
     justify-content: safe center;
   }
 }
+
+/* 7 ------------------------------------------------------------------------
+ * The menu's email drops to the designed 24px at 767 and below.
+ *
+ * Both the mobile-horizontal and mobile-portrait frames set this text at 24px;
+ * live it renders 29-32px, inherited from `.copy-email-text__wrap`.
+ *
+ * Scoped by ancestor rather than by class on purpose. copy-email is a COMPONENT
+ * with two instances on most pages — one in this menu, one in the page footer —
+ * and a component's internals are shared, so there is no class that reaches
+ * only the menu's copy. `.nav-menu` as an ancestor is the only selector that
+ * separates them, and the Designer cannot author ancestor-scoped rules.
+ *
+ * The footer's email is deliberately NOT changed: its size at mobile is not in
+ * the frames this came from, and it is a different surface.
+ *
+ * Only font-size is set. `.copy-email-text__wrap` sizes its height as `1.2em`
+ * and its line-height as a unitless 1.2, so the roller's clip window and its
+ * three stacked states all follow from this one value.
+ */
+@media (max-width: 767px) {
+  .nav-menu .copy-email-text__wrap {
+    font-size: 24px;
+  }
+}
