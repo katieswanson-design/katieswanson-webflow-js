@@ -1,0 +1,152 @@
+/**
+ * mode-toggle.css — the mode switcher becomes an icon at 767 and below.
+ *
+ * Above 767 the control is a text button reading "dark mode" / "light mode".
+ * At 767 and below the design swaps that text for a 24x24 icon inside a 44x44
+ * target, and the two icons cross-fade into each other on every switch.
+ *
+ * Markup contract (nav component, nav-top right):
+ *
+ *   <button class="nav-label nav-action is-mode" data-mode-toggle type="button">
+ *     <span data-mode-label>dark mode</span>
+ *     <span data-mode-icons aria-hidden="true">
+ *       <svg data-mode-icon="moon" viewBox="0 0 256 256">…</svg>
+ *       <svg data-mode-icon="sun"  viewBox="0 0 24 24">…</svg>
+ *     </span>
+ *   </button>
+ *
+ * The 44x44 box is NOT here — it is `.nav-label.nav-action.is-mode` at `small`
+ * in the Designer, where a size someone may want to nudge belongs. Everything
+ * in this file is something the Designer cannot express at all.
+ *
+ * Why the icons are in the markup rather than swapped by script: both are
+ * always present and only their opacity changes, so there is something to
+ * transition between. Replacing one <svg> with another gives you nothing to
+ * animate, and it would put the icon's correctness in the hands of whichever
+ * code ran last. See src/mode-switch.js, which for the same reason now writes
+ * the label into [data-mode-label] rather than onto the button.
+ */
+
+/* 1 ------------------------------------------------------------------------
+ * Above 767 the icons do not exist as far as layout is concerned.
+ *
+ * They stay in the DOM — they are aria-hidden, so they cost the accessibility
+ * tree nothing — and this is the one declaration that keeps the desktop button
+ * a plain text button.
+ */
+[data-mode-icons] {
+  display: none;
+}
+
+/* 2 ------------------------------------------------------------------------
+ * Reduced motion: the icon still changes, it just arrives.
+ *
+ * Declared outside the width query on purpose, so it holds at every width and
+ * cannot be lost if the breakpoint below is ever edited. It mirrors the
+ * decision in src/mode-switch.js, where the colour wash is skipped rather than
+ * slowed — a cross-fade is a flourish, and the honest reduced-motion variant of
+ * a flourish is none of it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  [data-mode-icon] {
+    transition: none;
+  }
+}
+
+/* 3 ------------------------------------------------------------------------
+ * 767 and below: text out, icon in.
+ *
+ * Webflow's `small` breakpoint, matching the reference navigation Katie cited
+ * and her own mobile-horizontal frames. Written here rather than in the
+ * Designer because none of the four things it does can be drawn:
+ *
+ *   - hiding text *visually while keeping it in the accessible name*. The
+ *     Designer only offers display:none, which takes the text out of the
+ *     accessibility tree as well — and this text IS the button's accessible
+ *     name, so that would leave a nameless button (WCAG 4.1.2).
+ *   - stacking two elements in the same 24x24 cell.
+ *   - keying the visible icon off a class on <html>.
+ *   - transitioning between them.
+ */
+@media (max-width: 767px) {
+  /* The label is still read, still matched by voice control, still flips
+   * between "dark mode" and "light mode" — it is simply not painted. This is
+   * the standard visually-hidden recipe rather than `clip-path` alone because
+   * the 1px box plus `overflow: hidden` is what stops a long string from
+   * affecting layout in browsers that lay the text out before clipping it. */
+  [data-mode-label] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* The absolutely positioned label above needs a containing block, or it
+   * resolves against whatever ancestor happens to be positioned and can drag
+   * the page's scrollable area with it. The button is the correct anchor. */
+  [data-mode-toggle] {
+    position: relative;
+  }
+
+  /* 24x24 in a 44x44 target — her sizing, and WCAG 2.5.8 wants 44 on touch.
+   * `position: relative` here is load-bearing: the two icons are absolutely
+   * positioned against this box so they occupy the same cell instead of
+   * sitting side by side. */
+  [data-mode-icons] {
+    display: block;
+    position: relative;
+    width: 24px;
+    height: 24px;
+  }
+
+  [data-mode-icon] {
+    position: absolute;
+    inset: 0;
+    width: 24px;
+    height: 24px;
+    /* Both SVG paths are fill="currentColor", so the icon takes the button's
+     * colour token in both modes with nothing declared here. */
+    transition: opacity 200ms ease, transform 200ms ease;
+  }
+
+  /* Which icon shows.
+   *
+   * The button names the DESTINATION, not the current state — "dark mode"
+   * while light. src/mode-switch.js explains why, and the icon has to agree
+   * with the words or the control contradicts itself: a sun sitting next to an
+   * accessible name of "dark mode" tells sighted and screen-reader users two
+   * different things. So light mode shows the moon you are heading for, and
+   * dark mode shows the sun.
+   *
+   * Keyed off `.u-dark` on <html> rather than a class this script toggles, so
+   * it is correct however the mode was set — including the pre-paint boot
+   * script, which runs before any of this and never touches the button.
+   *
+   * The outgoing icon rotates away and the incoming one rotates in; direction
+   * is opposite for the two so the pair reads as one object turning rather
+   * than two things blinking. */
+  [data-mode-icon="moon"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  [data-mode-icon="sun"] {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
+  }
+
+  .u-dark [data-mode-icon="moon"] {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
+  }
+
+  .u-dark [data-mode-icon="sun"] {
+    opacity: 1;
+    transform: none;
+  }
+}

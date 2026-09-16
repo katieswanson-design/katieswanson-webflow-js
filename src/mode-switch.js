@@ -42,7 +42,13 @@
  *   native contrast), so declaring it costs nothing and removes the bet.
  *
  * Markup contract:
- *   <button type="button" data-mode-toggle>dark mode</button>
+ *   <button type="button" data-mode-toggle>
+ *     <span data-mode-label>dark mode</span>
+ *   </button>
+ *
+ * The span is required wherever the button also holds the mobile icons, and
+ * optional everywhere else — see `label()` below. src/mode-toggle.css owns the
+ * text-to-icon swap at 767 and below.
  *
  * The button label names the mode you would switch TO, not the one you are in:
  * "dark mode" while light, "light mode" while dark. It is therefore an action,
@@ -161,8 +167,22 @@
     meta.setAttribute('content', value);
   }
 
+  /**
+   * Write the label into [data-mode-label] when the button has one.
+   *
+   * At 767 and below the button also contains two inline <svg> icons that
+   * cross-fade (see src/mode-toggle.css). Setting textContent on the BUTTON
+   * would delete them — textContent replaces every child, not just the text —
+   * so the label gets its own span and this only ever touches that.
+   *
+   * Falling back to the button keeps older markup working: a plain
+   * <button data-mode-toggle>dark mode</button> still labels itself, which
+   * matters because the markup contract is per-instance and nothing here can
+   * guarantee every instance has been updated.
+   */
   function label(button) {
-    button.textContent = isDark() ? LABEL_TO_LIGHT : LABEL_TO_DARK;
+    var target = button.querySelector('[data-mode-label]') || button;
+    target.textContent = isDark() ? LABEL_TO_LIGHT : LABEL_TO_DARK;
   }
 
   var buttons = [].slice.call(
