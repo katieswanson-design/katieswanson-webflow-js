@@ -585,6 +585,16 @@
     // A link inside the panel navigates away; close first so the toggle label
     // and inert state are never left stale if the browser restores the page
     // from bfcache.
+    //
+    // `false` for moveFocus, and that argument is the whole point: this is the
+    // one close that must NOT send focus back to the menu button. Returning
+    // focus to the trigger is correct when a dialog is DISMISSED — Escape, the
+    // close button — because the user is staying put and needs somewhere to be.
+    // Here they are leaving, and the incoming page owns focus. Sending it to
+    // the toggle first painted a focus ring on the button for the instant
+    // before navigation, which Katie saw flickering on and off while picking
+    // links. Whether it showed at all depended on :focus-visible heuristics
+    // racing the navigation, which is why it looked intermittent.
     Array.prototype.forEach.call(links, function (link) {
       link.addEventListener("click", function () {
         if (!isOpen) return;
@@ -593,7 +603,7 @@
         applyClip(false);
         releasePage();
         progress = 0;
-        applyState(false);
+        applyState(false, false);
       });
     });
 
