@@ -463,8 +463,22 @@
     // going narrow, drop the inline values so CSS can show the static image;
     // going wide, park every thumb closed so the next hover opens from zero.
     HOVER_THUMBS.addEventListener("change", function () {
-      if (HOVER_THUMBS.matches) resetLinks();
-      else clearAllThumbs();
+      if (HOVER_THUMBS.matches) {
+        resetLinks();
+        return;
+      }
+      // Now narrow: the hover path's inline values mean nothing here, so drop
+      // them — but if the menu is open, put the images straight back, or
+      // crossing the breakpoint mid-open would empty a menu the visitor is
+      // still reading.
+      clearAllThumbs();
+      if (isOpen && window.gsap) {
+        window.gsap.set(autoThumbs(), {
+          width: function (i, el) { return Math.round(el.offsetHeight * THUMB_RATIO); },
+          marginRight: THUMB_GAP,
+          opacity: 1
+        });
+      }
     });
 
     // Each row is [thumb, link]. The thumb sits at width 0 until its row is
@@ -475,14 +489,12 @@
       var thumb = row.querySelector("[data-nav-menu-thumb]");
       if (!thumb) return;
 
-      // Below 992 hover does not drive these — the open timeline does. Bail so
-      // a stray pointer event cannot open one out of sequence, and clear rather
-      // than simply return so a resize down from desktop does not strand the
-      // hover path's inline values on the element.
-      if (!HOVER_THUMBS.matches) {
-        clearThumb(thumb);
-        return;
-      }
+      // Below 992 hover does not drive these — the open timeline does, and the
+      // images stay put once revealed. Bail without touching anything: the
+      // inline width/opacity here belong to the reveal tween, so clearing them
+      // (as this used to) made every image vanish the moment a pointer crossed
+      // any row. Stranded values from a resize are the change handler's job.
+      if (!HOVER_THUMBS.matches) return;
       // Width is derived from the rendered height so the ratio holds at any
       // breakpoint; height is explicit in CSS, so this is valid even at width 0.
       var w = on ? Math.round(thumb.offsetHeight * THUMB_RATIO) : 0;
