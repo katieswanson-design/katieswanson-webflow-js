@@ -50,6 +50,22 @@ if [ "$FAIL" -ne 0 ]; then
 fi
 echo "pre-flight: syntax and quotes OK"
 
+# mode-boot.js is registered INLINE, not served from the CDN, so a change to it
+# reaches the live site only when the inline script is re-registered by hand.
+# Rebuild the derived artifact now so the commit carries it, and say plainly
+# whether this release needs that manual step.
+if [ -x ./build-mode-boot.sh ]; then
+  MB_BEFORE=""
+  [ -f src/mode-boot.inline.js ] && MB_BEFORE=$(cat src/mode-boot.inline.js)
+  ./build-mode-boot.sh >/dev/null
+  if [ "$MB_BEFORE" != "$(cat src/mode-boot.inline.js)" ]; then
+    MODEBOOT_CHANGED=1
+  else
+    MODEBOOT_CHANGED=0
+  fi
+fi
+
+
 
 if [[ -n "$(git status --porcelain)" ]]; then
   git add -A
@@ -147,5 +163,17 @@ echo "Bump only the files listed above (Site settings > Custom code, or ask"
 echo "Claude to do it via the Webflow MCP), then PUBLISH — a registration"
 echo "change is not live until the site is published."
 echo
+if [ "${MODEBOOT_CHANGED:-0}" -eq 1 ]; then
+  echo
+  echo "═══════════════════════════════════════════════════════════════════"
+  echo " MANUAL STEP: the inline 'mode boot' script changed."
+  echo "═══════════════════════════════════════════════════════════════════"
+  echo " It is not served from the CDN, so no pin bump will pick it up."
+  echo " Re-register it with the exact contents of src/mode-boot.inline.js:"
+  echo
+  cat src/mode-boot.inline.js
+  echo
+  echo
+fi
 echo "Afterwards, ./check-pins.sh verifies the live pages against this repo."
 [[ "$FAILED" -eq 0 ]] || exit 1

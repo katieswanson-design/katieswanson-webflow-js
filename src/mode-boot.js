@@ -3,8 +3,22 @@
  *
  * THIS FILE IS NOT LOADED FROM THE CDN. Its contents are registered in Webflow
  * as an INLINE site-level script named "mode boot", placed in the HEADER. This
- * copy is the source of truth for review and editing; after changing it,
- * re-register the inline script in Webflow or the two will drift apart.
+ * file is the source of truth; edit it here.
+ *
+ * It is not what gets registered, though. register_inline_script caps source at
+ * 2000 characters and the comment block above puts this file at ~2800, so what
+ * Webflow holds is a stripped copy. That copy used to be produced by hand,
+ * which meant it could drift from this file with nothing to catch it.
+ *
+ * It is now a build artifact:
+ *   ./build-mode-boot.sh        derives src/mode-boot.inline.js from this file
+ *   ./release.sh                rebuilds it, and prints the bytes to register
+ *                               whenever this file changed
+ *   ./check-pins.sh             fails if the artifact is stale against this
+ *                               file, OR if the LIVE page serves other bytes
+ *
+ * So the manual step remains — Webflow has no API to publish inline source
+ * without registering it — but it can no longer be forgotten silently.
  *
  * Why inline, and why the header:
  *   Every other script on this site is a hosted file in the footer, which is

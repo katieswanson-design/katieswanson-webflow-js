@@ -106,6 +106,8 @@ done < "$PINS"
 ORPHANS=""
 for f in src/*.js src/*.css; do
   [ -e "$f" ] || continue
+  # mode-boot is inline, never CDN-referenced, and has its own check below.
+  case "$(basename "$f")" in mode-boot.js|mode-boot.inline.js) continue ;; esac
   hit=0
   for s in "${SEEN[@]:-}"; do [ "$s" = "$f" ] && hit=1 && break; done
   [ "$hit" -eq 0 ] && ORPHANS+="$(basename "$f") "
@@ -118,7 +120,51 @@ if [ -n "${ORPHANS// /}" ]; then
   echo
 fi
 
-if [ "$STALE" -eq 0 ] && [ "$MISSING" -eq 0 ] && [ "$UNREACHABLE" -eq 0 ]; then
+# ---- mode boot: the one script no pin can cover ------------------------------
+# mode-boot.js is not served from jsDelivr. It is registered as an INLINE script
+# so it runs before first paint, and Webflow re-hosts those bytes on its own CDN
+# under a name this script cannot predict from the repo. So the loop above,
+# which matches jsDelivr URLs against tags, is blind to it.
+#
+# It is also the script where silent drift costs the most: a stale boot copy
+# brings back the flash-of-wrong-theme, and nothing else would report it.
+#
+# src/mode-boot.inline.js is the derived artifact that build-mode-boot.sh
+# produces from src/mode-boot.js. Two things get checked: that the artifact is
+# current with its source, and that the live page serves exactly those bytes.
+MODEBOOT=0
+if ! ./build-mode-boot.sh --check >/dev/null 2>&1; then
+  echo
+  echo "mode-boot.inline.js is STALE against src/mode-boot.js."
+  echo "   Run ./build-mode-boot.sh, then re-register the inline script."
+  MODEBOOT=1
+else
+  MB_URL=$(curl -fsSL "${BASE}/new-home" 2>/dev/null \
+    | grep -o 'https://[^"]*mode_boot-[^"]*\.js' | head -1)
+  if [ -z "$MB_URL" ]; then
+    echo
+    echo "mode boot: no inline script found on the published page. Investigate."
+    MODEBOOT=1
+  elif curl -fsSL "$MB_URL" -o /tmp/ks-modeboot-live.js 2>/dev/null; then
+    if cmp -s /tmp/ks-modeboot-live.js src/mode-boot.inline.js; then
+      echo
+      echo "mode boot            inline     ok - live bytes match the repo"
+    else
+      echo
+      echo "mode boot            inline     STALE - live bytes differ from"
+      echo "                                src/mode-boot.inline.js"
+      echo "   Re-register the inline script with the output of ./build-mode-boot.sh"
+      MODEBOOT=1
+    fi
+    rm -f /tmp/ks-modeboot-live.js
+  else
+    echo
+    echo "mode boot: could not fetch $MB_URL"
+    MODEBOOT=1
+  fi
+fi
+
+if [ "$STALE" -eq 0 ] && [ "$MISSING" -eq 0 ] && [ "$UNREACHABLE" -eq 0 ] && [ "$MODEBOOT" -eq 0 ]; then
   echo "All pins current. Nothing to bump."
   exit 0
 fi
@@ -126,4 +172,5 @@ fi
 [ "$STALE" -gt 0 ] && echo "$STALE stale pin(s) — bump those registrations in Webflow, then PUBLISH."
 [ "$MISSING" -ne 0 ] && echo "Some pins point at a tag that does not contain the file. Investigate before bumping."
 [ "$UNREACHABLE" -ne 0 ] && echo "Some pages could not be fetched; results are incomplete."
+[ "$MODEBOOT" -ne 0 ] && echo "The inline mode boot script needs attention - see above."
 exit 1
