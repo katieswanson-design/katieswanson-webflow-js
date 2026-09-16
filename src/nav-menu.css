@@ -35,3 +35,49 @@
   overflow: hidden;
   pointer-events: none;
 }
+
+/* 3 ------------------------------------------------------------------------
+ * The narrow-desktop band: 1200px down to the tablet breakpoint.
+ *
+ * This is the one range in the nav's design that Webflow cannot express. Its
+ * breakpoints are fixed — the nearest above the tablet cutoff is 1280 — so a
+ * design that changes at 1200 has nowhere to live in the Designer. Everything
+ * else in this nav uses native breakpoints; only this band is hand-written.
+ *
+ * Lower bound is 992 rather than 991 so it stops exactly where Webflow's
+ * `medium` (max-width: 991px) takes over. Overlapping them would mean two
+ * rules fighting over a single pixel, decided by source order.
+ *
+ * Loaded after Webflow's stylesheet, so equal-specificity selectors win here
+ * without needing !important.
+ */
+@media (min-width: 992px) and (max-width: 1200px) {
+  /* Type steps down: 140 -> 100 primary, 48 -> 42 secondary. */
+  .nav-menu_display {
+    font-size: 100px;
+    line-height: 100px;
+  }
+
+  .nav-menu_display.is-secondary {
+    font-size: 42px;
+    line-height: 42px;
+  }
+
+  /* The left column stops reserving 685px and spreads its four rows instead:
+   * four 100px rows in a 440px dialog leaves 40px, distributed between them
+   * rather than pooled at the bottom. */
+  .nav-menu_left {
+    min-width: 0;
+    justify-content: space-between;
+  }
+
+  /* The right column stops stretching and becomes content-width, with a fixed
+   * 60px between the contact block and the link list in place of the
+   * space-between the wider layout uses. */
+  .nav-menu_right {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    row-gap: 60px;
+    padding-bottom: 8px;
+  }
+}
