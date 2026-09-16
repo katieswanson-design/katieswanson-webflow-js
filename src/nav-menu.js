@@ -387,7 +387,7 @@
             width: function (i, el) {
               return open ? Math.round(el.offsetHeight * THUMB_RATIO) : 0;
             },
-            marginRight: open ? THUMB_GAP : 0,
+            marginRight: open ? thumbGap() : 0,
             opacity: open ? 1 : 0,
             duration: open ? THUMB_IN_DURATION : LINK_OUT_DURATION * 0.5,
             stagger: open ? THUMB_IN_STAGGER : 0,
@@ -419,7 +419,27 @@
     }
 
     var THUMB_RATIO = 16 / 10;   // matches aspect-ratio on .nav-menu_thumb
-    var THUMB_GAP = 16;          // px between the thumb and the word
+
+    /**
+     * Gap between the thumbnail and the word, in px.
+     *
+     * The designs use two values, and the split is the same 992 boundary that
+     * already decides whether these images are hover-driven or auto-revealed:
+     *
+     *   desktop frames (1920 / 1201 / 1200 / 991 columns) .... 16
+     *   tablet, mobile horizontal, mobile portrait .......... 8
+     *
+     * It has to be read at call time rather than captured once, because the
+     * value has to follow a resize across the breakpoint. It is a function for
+     * that reason alone.
+     *
+     * This lives in JS rather than CSS because the gap is written as an inline
+     * `margin-right` that the open/close tween animates from 0; a stylesheet
+     * rule would be overwritten by the tween on the first frame.
+     */
+    function thumbGap() {
+      return HOVER_THUMBS.matches ? 16 : 8;
+    }
     var THUMB_EASE = "power3.out";
     var rows = panel.querySelectorAll(".nav-menu_row");
 
@@ -480,7 +500,7 @@
       if (isOpen && window.gsap) {
         window.gsap.set(autoThumbs(), {
           width: function (i, el) { return Math.round(el.offsetHeight * THUMB_RATIO); },
-          marginRight: THUMB_GAP,
+          marginRight: thumbGap(),
           opacity: 1
         });
       }
@@ -505,13 +525,13 @@
       var w = on ? Math.round(thumb.offsetHeight * THUMB_RATIO) : 0;
       if (instant) {
         thumb.style.width = w + "px";
-        thumb.style.marginRight = (on ? THUMB_GAP : 0) + "px";
+        thumb.style.marginRight = (on ? thumbGap() : 0) + "px";
         thumb.style.opacity = on ? "1" : "0";
         return;
       }
       window.gsap.to(thumb, {
         width: w,
-        marginRight: on ? THUMB_GAP : 0,
+        marginRight: on ? thumbGap() : 0,
         opacity: on ? 1 : 0,
         duration: 0.45,
         ease: THUMB_EASE
