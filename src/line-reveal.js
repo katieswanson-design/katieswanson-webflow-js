@@ -47,10 +47,12 @@
   // grew by 0.2em while split and snapped back when the split was undone.
   var MASK_BLEED = "0.2em";
 
-  // Horizontal room on each word mask, cancelled the same way, so a char
-  // nudged back to its kerned position (see glyphRects) and wide glyph
-  // overhangs are never clipped at the word's edges.
-  var MASK_BLEED_X = "0.15em";
+  // The masks clip vertically only. Glyphs can overhang their box sideways —
+  // Champ's "j" hooks 0.081em left of its box — and on Katie's iPhone the hook
+  // of the "j" in "junkie" was cut at the word's left edge even with 0.15em of
+  // padding there (v1.0.104). overflow-x: visible + overflow-y: clip (valid
+  // per axis, unlike hidden) means no side can ever crop a glyph. Namma's line
+  // masks do the same.
 
   // Never leave a heading hidden if fonts.ready is slow to settle.
   var FONT_TIMEOUT = 3000;
@@ -84,7 +86,8 @@
   //    so words land on different lines. Suspected on iPhone (WebKit): Katie
   //    saw a jump on mobile that Chrome at 390 did not reproduce.
   // So: move each word's mask to where that word's first glyph really is, then
-  // nudge each char to its kerned position within it.
+  // nudge each char to its kerned position within it (masks never clip
+  // sideways, so a nudge can't crop a glyph).
   function glyphRects(el) {
     var rects = [];
     var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -150,10 +153,8 @@
       m.style.paddingBottom = MASK_BLEED;
       m.style.marginTop = "-" + MASK_BLEED;
       m.style.marginBottom = "-" + MASK_BLEED;
-      m.style.paddingLeft = MASK_BLEED_X;
-      m.style.paddingRight = MASK_BLEED_X;
-      m.style.marginLeft = "-" + MASK_BLEED_X;
-      m.style.marginRight = "-" + MASK_BLEED_X;
+      m.style.overflowX = "visible";
+      m.style.overflowY = "clip";
     });
 
     matchLayout(split, glyphs);
