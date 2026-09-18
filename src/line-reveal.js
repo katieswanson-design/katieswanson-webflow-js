@@ -48,7 +48,7 @@
   var MASK_BLEED = "0.2em";
 
   // Horizontal room on each word mask, cancelled the same way, so a char
-  // nudged back to its kerned position (see glyphLefts) and wide glyph
+  // nudged back to its kerned position (see glyphRects) and wide glyph
   // overhangs are never clipped at the word's edges.
   var MASK_BLEED_X = "0.15em";
 
@@ -74,13 +74,19 @@
   }
 
   // Where each visible character sits, in reading order, before the split.
-  // Split chars are separate boxes, so they lose kerning: measured on Champ at
-  // 140px, "systems builder" shifted by up to 7.4px. Osmo's fix is
-  // font-kerning: none; Namma never un-splits. Instead each split char is
-  // nudged back to its kerned position, so the split looks identical to the
-  // heading and reverting it at the end moves nothing.
-  function glyphLefts(el) {
-    var lefts = [];
+  // The split must look exactly like the heading, or reverting it at the end
+  // makes the text jump. Two things break that:
+  //  - Kerning. Split chars are separate boxes, so they lose it: on Champ at
+  //    140px "systems builder" shifted by up to 7.4px. (Osmo's fix is
+  //    font-kerning: none; Namma never reverts.)
+  //  - Line breaks. When the heading wraps (phones: 4 lines), the engine can
+  //    break the split's inline-block words differently from the plain text,
+  //    so words land on different lines. Suspected on iPhone (WebKit): Katie
+  //    saw a jump on mobile that Chrome at 390 did not reproduce.
+  // So: move each word's mask to where that word's first glyph really is, then
+  // nudge each char to its kerned position within it.
+  function glyphRects(el) {
+    var rects = [];
     var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     var range = document.createRange();
     var node;
@@ -89,15 +95,49 @@
         if (!node.data[i].trim()) continue;
         range.setStart(node, i);
         range.setEnd(node, i + 1);
-        lefts.push(range.getBoundingClientRect().left);
+        var r = range.getBoundingClientRect();
+        rects.push({ left: r.left, top: r.top });
       }
     }
-    return lefts;
+    return rects;
+  }
+
+  // Text box of a split char, measured the same way as glyphRects.
+  function textRect(el) {
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    return range.getBoundingClientRect();
+  }
+
+  function matchLayout(split, glyphs) {
+    if (split.chars.length !== glyphs.length) return;
+    var gsap = window.gsap;
+    var k = 0;
+    split.words.forEach(function (word) {
+      var chars = split.chars.filter(function (c) {
+        return word.contains(c);
+      });
+      if (!chars.length) return;
+
+      var mask = word.parentElement;
+      var first = textRect(chars[0]);
+      var dx = glyphs[k].left - first.left;
+      var dy = glyphs[k].top - first.top;
+      if (mask && (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1)) {
+        gsap.set(mask, { x: dx, y: dy });
+      }
+
+      chars.forEach(function (c, j) {
+        var cdx = glyphs[k + j].left - textRect(c).left;
+        if (Math.abs(cdx) > 0.1) gsap.set(c, { x: cdx });
+      });
+      k += chars.length;
+    });
   }
 
   function reveal(el) {
     var label = labelFor(el);
-    var kerned = glyphLefts(el);
+    var glyphs = glyphRects(el);
     var split = window.SplitText.create(el, {
       type: "words,chars",
       mask: "words",
@@ -116,12 +156,7 @@
       m.style.marginRight = "-" + MASK_BLEED_X;
     });
 
-    if (split.chars.length === kerned.length) {
-      split.chars.forEach(function (c, i) {
-        var dx = kerned[i] - c.getBoundingClientRect().left;
-        if (Math.abs(dx) > 0.1) window.gsap.set(c, { x: dx });
-      });
-    }
+    matchLayout(split, glyphs);
 
     el.style.visibility = "";
 
