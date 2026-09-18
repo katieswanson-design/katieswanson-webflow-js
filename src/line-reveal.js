@@ -48,11 +48,26 @@
       : false;
   }
 
+  // The heading's text as one phrase. SplitText labels the split element from
+  // its textContent, and a <br> contributes nothing to textContent, so
+  // "systems builder<br>efficiency junkie" was announced as
+  // "systems builderefficiency junkie". Treat each <br> as a space instead.
+  function labelFor(el) {
+    var copy = el.cloneNode(true);
+    Array.prototype.forEach.call(copy.querySelectorAll("br"), function (br) {
+      br.parentNode.replaceChild(document.createTextNode(" "), br);
+    });
+    return copy.textContent.replace(/\s+/g, " ").trim();
+  }
+
   function reveal(el) {
+    var label = labelFor(el);
     var split = window.SplitText.create(el, {
       type: "lines",
       mask: "lines",
     });
+    // Replaces SplitText's own label; revert() still removes it afterwards.
+    el.setAttribute("aria-label", label);
 
     split.masks.forEach(function (m) {
       m.style.paddingTop = MASK_BLEED;
