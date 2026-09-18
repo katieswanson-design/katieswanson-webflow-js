@@ -15,10 +15,10 @@
  * so it wraps, balances and reads exactly as authored; lines are whatever the
  * browser lays out at the current width, measured after the web font loads.
  *
- * Accessibility: the heading is the real text, not a copy. SplitText labels the
- * element with its full text and hides the split pieces from assistive tech
- * while they exist, and the split is reverted as soon as the reveal finishes,
- * leaving the original DOM. Plays once, well under WCAG 2.2.2's five seconds,
+ * Accessibility: the heading is the real text, not a copy. The heading carries
+ * an aria-label with its full text and SplitText hides the split pieces from
+ * assistive tech. The split stays in place after the reveal (see the note at
+ * the end of reveal()) and is reverted to the original DOM on a width change. Plays once, well under WCAG 2.2.2's five seconds,
  * so it needs no pause control. Reduced motion, a missing GSAP or SplitText:
  * the heading simply shows.
  *
@@ -30,9 +30,10 @@
 (function () {
   "use strict";
 
-  // Namma's values. Their chars end at yPercent 9 to offset a fixed 175px
-  // word box tuned to their font; ours end at 0, where the text belongs.
-  var FROM_Y = 150;
+  // Namma's timing. Their chars start at yPercent 150 and end at 9 (to offset
+  // a fixed 175px word box tuned to their font); ours end at 0, where the text
+  // belongs, and start at 200 so they clear the deeper bottom bleed below.
+  var FROM_Y = 200;
   var DURATION = 1.5;
   var STAGGER = 0.027;
   var EASE = "power4.out";
@@ -45,7 +46,16 @@
   // margins never collapse — v1.0.101/102 used block LINE masks, where the
   // negative margins of neighbouring lines collapsed into one, so every gap
   // grew by 0.2em while split and snapped back when the split was undone.
-  var MASK_BLEED = "0.2em";
+  var MASK_BLEED = "0.45em";
+
+  // Extra room below. A descender (the tail of "j", "y") is the last part of a
+  // rising glyph to clear the mask, and power4.out spends its long settle in
+  // the last few pixels — so with shallow room the tail sits clipped and then
+  // "grows out" at the end (Katie, iPhone, v1.0.105). Measured in Playwright:
+  // 0.2em of room kept the j's tail clipped until 56% of its rise. 0.6em below
+  // plus FROM_Y 200 (so chars still start fully hidden) clears it while the
+  // letter is still visibly moving.
+  var MASK_BLEED_BOTTOM = "0.6em";
 
   // The masks clip vertically only. Glyphs can overhang their box sideways —
   // Champ's "j" hooks 0.081em left of its box — and on Katie's iPhone the hook
@@ -85,7 +95,7 @@
   //    break the split's inline-block words differently from the plain text,
   //    so words land on different lines. Suspected on iPhone (WebKit): Katie
   //    saw a jump on mobile that Chrome at 390 did not reproduce.
-  // So: move each word's mask to where that word's first glyph really is, then
+  // So: move each word to where its first glyph really is, then
   // nudge each char to its kerned position within it (masks never clip
   // sideways, so a nudge can't crop a glyph).
   function glyphRects(el) {
@@ -122,12 +132,17 @@
       });
       if (!chars.length) return;
 
-      var mask = word.parentElement;
+      // Move the WORD inside its mask, never the mask itself: the mask's
+      // edges are the clip, and moving them eats the room left for ascenders
+      // and descenders. WebKit lays the split ~8px lower than the heading at
+      // 390; shifting the mask up to match left the "j" in "junkie" 3px of
+      // room, so its tail was clipped through power4.out's long settle and
+      // "grew out" at the end (v1.0.105, measured in Playwright WebKit).
       var first = textRect(chars[0]);
       var dx = glyphs[k].left - first.left;
       var dy = glyphs[k].top - first.top;
-      if (mask && (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1)) {
-        gsap.set(mask, { x: dx, y: dy });
+      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+        gsap.set(word, { x: dx, y: dy });
       }
 
       chars.forEach(function (c, j) {
@@ -150,9 +165,9 @@
 
     split.masks.forEach(function (m) {
       m.style.paddingTop = MASK_BLEED;
-      m.style.paddingBottom = MASK_BLEED;
+      m.style.paddingBottom = MASK_BLEED_BOTTOM;
       m.style.marginTop = "-" + MASK_BLEED;
-      m.style.marginBottom = "-" + MASK_BLEED;
+      m.style.marginBottom = "-" + MASK_BLEED_BOTTOM;
       m.style.overflowX = "visible";
       m.style.overflowY = "clip";
     });
@@ -166,10 +181,24 @@
       duration: DURATION,
       stagger: STAGGER,
       ease: EASE,
-      onComplete: function () {
-        split.revert();
-      },
     });
+
+    // Keep the split once the reveal lands; do NOT revert on complete.
+    // Reverting swaps the split boxes for plain text, and WebKit repositions
+    // glyphs when it does: pixel-diffing the heading either side of the revert
+    // in Playwright WebKit at 390 changed 3% of its pixels (letters visibly
+    // shift — Katie's "shimmy" on iPhone) against 0.24% of edge noise in
+    // Chrome. Namma never reverts either. The one thing that invalidates the
+    // kerning/layout nudges is a width change, so revert then, once — mid-
+    // resize the reflow is expected anyway. aria-label stays on the heading.
+    var width = window.innerWidth;
+    function onResize() {
+      if (window.innerWidth === width) return; // iOS fires resize on URL-bar scroll
+      window.removeEventListener("resize", onResize);
+      window.gsap.killTweensOf(split.chars);
+      split.revert();
+    }
+    window.addEventListener("resize", onResize);
   }
 
   function initLineReveal() {
