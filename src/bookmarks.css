@@ -1,0 +1,83 @@
+/*
+ * bookmarks.css — the parts of the /bookmarks page the Webflow Designer cannot
+ * express. Agreed with Katie 2026-09-18 ("yes" to a small repo stylesheet).
+ * Everything else (card sizes, type, colours, button base styles) lives in the
+ * Designer.
+ *
+ * Why each rule is here and not in the Designer:
+ *   - Styling a child on its parent's :hover / :focus-visible needs a
+ *     descendant combinator.
+ *   - The filter states are data attributes the script sets at runtime.
+ *     Attribute selectors can't be authored in the Designer, and because they
+ *     aren't classes, Style Manager "Clean up" can't delete them.
+ *   - Line clamping needs -webkit-* properties, which the Designer rejects.
+ */
+
+/* ---- Content card: arrow appears on hover and on keyboard focus ---------- */
+/* Rest state (opacity 0) is on .content-card-arrow in the Designer. */
+.content-card .content-card-arrow {
+  transition: opacity 200ms cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+.content-card:hover .content-card-arrow,
+.content-card:focus-visible .content-card-arrow {
+  opacity: 1;
+}
+
+/* ---- Content card: description never exceeds three lines ---------------- */
+/* min-height: 3lh (Designer) keeps every card's top the same height; this
+   clamp is the safety net for a description that runs long. The intake skill
+   writes descriptions to fit, so it should rarely trigger. */
+.content-card-type {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+/* ---- Filter buttons ------------------------------------------------------ */
+/* Base look is the .filter-btn class in the Designer; the pressed state is
+   driven by aria-pressed, which the script keeps in sync. */
+[data-filter-target][aria-pressed="true"],
+[data-filter-target][aria-pressed="true"]:hover {
+  /* :hover repeated so the Designer's .filter-btn:hover can't win on
+     source order and lighten the pressed button. */
+  background-color: var(--surface--inverse);
+  color: var(--text--inverse);
+}
+
+/* ---- Filter items -------------------------------------------------------- */
+[data-filter-list] {
+  position: relative;
+}
+[data-filter-item][data-filter-status="active"] {
+  opacity: 1;
+  transform: scale(1);
+  visibility: visible;
+  transition:
+    opacity 350ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    transform 350ms cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+[data-filter-item][data-filter-status="transition-out"] {
+  opacity: 0;
+  transform: scale(0.96);
+  visibility: visible;
+  /* 250ms: exit faster than enter; keep in step with OUT_MS in the script. */
+  transition:
+    opacity 250ms cubic-bezier(0.55, 0.055, 0.675, 0.19),
+    transform 250ms cubic-bezier(0.55, 0.055, 0.675, 0.19);
+}
+[data-filter-item][data-filter-status="not-active"] {
+  opacity: 0;
+  transform: scale(0.96);
+  visibility: hidden;
+  position: absolute;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content-card .content-card-arrow,
+  [data-filter-item][data-filter-status] {
+    transition: none;
+    transform: none;
+  }
+}
