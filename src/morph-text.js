@@ -41,6 +41,15 @@
  * 12rem rather than filling a wide screen), and without this script the type
  * falls back to 14vw. The stage height is in em so it follows the fitted size.
  *
+ * Wrap mode (phones). Long phrases fitted to one line get small, and the morph
+ * stops reading below ~50px type. So where the Designer lets the layers wrap —
+ * `.morphing-text-01__layer` white-space: normal + text-align: center, set at
+ * `small` (767 and below) — the script fits the longest single WORD instead and
+ * phrases break onto several lines at a larger size. It reads the layer's
+ * computed white-space, so moving that breakpoint is a Designer-only change.
+ * It also sets `--morph-lines` (the most lines any phrase needs), and the
+ * stage height is `calc(var(--morph-lines, 1) * 1.2em)`.
+ *
  * Styling lives in the Designer (.morphing-text-01__stage sizes the box, the
  * two absolutely positioned layers stack inside it, the heading sets the type).
  * Beyond --morph-fit the script only writes the per-frame blur/opacity and the
@@ -134,7 +143,8 @@
   // function that re-runs the fit; the caller wires it to resize and fonts.
   function createFit(stage, words) {
     var host = stage.parentElement;
-    if (!host) return function () {};
+    var layer = stage.querySelector("[data-morph-layer]");
+    if (!host || !layer) return function () {};
 
     // Measures at the stage's own font-size, one line, outside the layout.
     var probe = document.createElement("span");
@@ -143,32 +153,74 @@
       "position:absolute;left:0;top:0;visibility:hidden;white-space:nowrap;" +
       "display:inline-block;pointer-events:none";
 
-    function widestWord() {
+    // Measures how many lines a phrase wraps to at the stage's width, laid out
+    // the way a wrapping layer lays it out.
+    var block = document.createElement("div");
+    block.setAttribute("aria-hidden", "true");
+    block.style.cssText =
+      "position:absolute;left:0;top:0;visibility:hidden;white-space:normal;" +
+      "text-align:center;pointer-events:none";
+
+    // Single words, for wrap mode: the longest one is what must fit a line.
+    var singles = [];
+    words.forEach(function (w) {
+      w.split(/\s+/).forEach(function (part) {
+        if (part) singles.push(part);
+      });
+    });
+
+    function widest(list) {
       stage.appendChild(probe);
-      var widest = 0;
-      words.forEach(function (w) {
+      var max = 0;
+      list.forEach(function (w) {
         probe.textContent = w;
-        widest = Math.max(widest, probe.getBoundingClientRect().width);
+        max = Math.max(max, probe.getBoundingClientRect().width);
       });
       stage.removeChild(probe);
-      return widest;
+      return max;
+    }
+
+    function mostLines(available) {
+      block.style.width = available + "px";
+      stage.appendChild(block);
+      block.textContent = "x";
+      var line = block.getBoundingClientRect().height;
+      var max = 1;
+      words.forEach(function (w) {
+        block.textContent = w;
+        var h = block.getBoundingClientRect().height;
+        if (line > 0) max = Math.max(max, Math.round(h / line));
+      });
+      stage.removeChild(block);
+      return max;
     }
 
     return function fit() {
       var available = stage.clientWidth;
       if (available <= 0) return;
 
+      // The Designer decides the mode: layers that may wrap (white-space
+      // normal, set at `small` and below) fit the longest single WORD and let
+      // phrases break onto more lines; layers that may not fit the longest
+      // whole phrase on one line.
+      var wraps = window.getComputedStyle(layer).whiteSpace !== "nowrap";
+      var list = wraps ? singles : words;
+
       // Two passes: the first is exact in theory, the second absorbs rounding
       // and hinting. If the clamp is holding the size at its floor or ceiling,
       // the measured width stops changing and the loop exits.
       for (var i = 0; i < 2; i++) {
         var size = parseFloat(window.getComputedStyle(stage).fontSize);
-        var width = widestWord();
-        if (!size || width <= 0) return;
+        var width = widest(list);
+        if (!size || width <= 0) break;
         var ratio = available / width;
-        if (Math.abs(ratio - 1) < FIT_TOLERANCE) return;
+        if (Math.abs(ratio - 1) < FIT_TOLERANCE) break;
         host.style.setProperty("--morph-fit", size * ratio + "px");
       }
+
+      // The stage is as tall as the phrase with the most lines, so its height
+      // never changes from one word to the next.
+      host.style.setProperty("--morph-lines", wraps ? mostLines(available) : 1);
     };
   }
 
