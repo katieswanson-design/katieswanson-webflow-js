@@ -76,6 +76,18 @@
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* The whole-page cross-fade on every navigation. The browser default is
+ * 0.25s, which Katie saw as a flash leaving the menu: its tinted panel
+ * (surface/secondary) jumped to the new page's white, near-empty hero in a
+ * quarter second. Same length as the card morph so the site keeps one
+ * duration. Symmetric ease-in-out rather than the morph's ease-out, because
+ * a cross-fade that front-loads its change reads as a flash again. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+}
+
 /* ------------------------------------------------------ REDUCED MOTION ---
  * The global guard in reset.css cannot reach these. It sets animation-duration
  * on `*`, and the ::view-transition-* pseudo-elements live in a separate tree
