@@ -67,6 +67,13 @@
   // layer never blows the filter region out to infinity.
   var MAX_BLUR = 46;
 
+  // The gem's blur values are pixels tuned for ~10rem (160px) type. Fitted type
+  // runs from 24px to 192px, and a fixed 46px blur on 30px letters is 1.5em —
+  // they dissolve into one blob instead of melting. Every blur value is scaled
+  // by fontSize / BLUR_REFERENCE, so the morph at 30px is the 160px morph,
+  // shrunk: same shapes at every size.
+  var BLUR_REFERENCE = 160;
+
   // A frame gap longer than this is a pause (background tab, offscreen), not
   // time that should count towards the morph.
   var MAX_FRAME_GAP = 0.1;
@@ -247,8 +254,11 @@
     // Presence 0 → 1. Blur balloons as presence nears 0 so the letters
     // dissolve; opacity eases so the incoming word arrives early enough to
     // merge with the outgoing one.
+    var blurScale = 1;
+
     function apply(layer, presence) {
-      var blur = Math.min(MAX_BLUR, 6 / Math.max(presence, 0.0001) - 6);
+      var blur =
+        Math.min(MAX_BLUR, 6 / Math.max(presence, 0.0001) - 6) * blurScale;
       layer.style.filter = "blur(" + blur + "px)";
       layer.style.opacity = String(Math.pow(presence, 0.42));
     }
@@ -290,6 +300,10 @@
 
       if (phase !== "morph") {
         phase = "morph";
+        // Read once per morph: the fitted size only changes on resize.
+        blurScale =
+          parseFloat(window.getComputedStyle(stage).fontSize) / BLUR_REFERENCE ||
+          1;
         stage.style.filter = filterValue;
         layerA.style.willChange = "filter, opacity";
         layerB.style.willChange = "filter, opacity";
