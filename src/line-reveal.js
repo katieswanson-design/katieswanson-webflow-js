@@ -1,6 +1,9 @@
 /**
- * line-reveal.js — a heading's lines rise into place from behind a mask, one
- * after another, once, when the page loads.
+ * line-reveal.js — a heading's letters rise into place from behind a mask on
+ * each word, one after another, once, when the page loads. The motion is
+ * Studio Namma's hero reveal (studionamma.com/approach, read from their inline
+ * script 2026-09-18): SplitText words + chars, each word an overflow mask,
+ * chars from yPercent 150, stagger 0.027s, 1.5s, power4.out.
  *
  * Requires: GSAP 3 core + the SplitText plugin (both site-level, before this).
  *
@@ -27,17 +30,27 @@
 (function () {
   "use strict";
 
-  var DURATION = 0.9;
-  var STAGGER = 0.12;
+  // Namma's values. Their chars end at yPercent 9 to offset a fixed 175px
+  // word box tuned to their font; ours end at 0, where the text belongs.
+  var FROM_Y = 150;
+  var DURATION = 1.5;
+  var STAGGER = 0.027;
   var EASE = "power4.out";
 
-  // The mask is each line's box, and display type sits in a line-height tighter
+  // The mask is each word's box, and display type sits in a line-height tighter
   // than its glyphs (130px on 140px Champ), so a plain mask would crop
-  // ascenders and descenders — and then visibly un-crop them when the split is
-  // reverted. Pad each mask by this much above and below and pull the padding
-  // back with an equal negative margin: the glyphs get room, the layout does
-  // not move.
+  // ascenders and descenders. Pad each mask by this much above and below and
+  // pull the padding back with an equal negative margin: the glyphs get room,
+  // the layout does not move. Word masks are inline-block, whose vertical
+  // margins never collapse — v1.0.101/102 used block LINE masks, where the
+  // negative margins of neighbouring lines collapsed into one, so every gap
+  // grew by 0.2em while split and snapped back when the split was undone.
   var MASK_BLEED = "0.2em";
+
+  // Horizontal room on each word mask, cancelled the same way, so a char
+  // nudged back to its kerned position (see glyphLefts) and wide glyph
+  // overhangs are never clipped at the word's edges.
+  var MASK_BLEED_X = "0.15em";
 
   // Never leave a heading hidden if fonts.ready is slow to settle.
   var FONT_TIMEOUT = 3000;
@@ -60,11 +73,34 @@
     return copy.textContent.replace(/\s+/g, " ").trim();
   }
 
+  // Where each visible character sits, in reading order, before the split.
+  // Split chars are separate boxes, so they lose kerning: measured on Champ at
+  // 140px, "systems builder" shifted by up to 7.4px. Osmo's fix is
+  // font-kerning: none; Namma never un-splits. Instead each split char is
+  // nudged back to its kerned position, so the split looks identical to the
+  // heading and reverting it at the end moves nothing.
+  function glyphLefts(el) {
+    var lefts = [];
+    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    var range = document.createRange();
+    var node;
+    while ((node = walker.nextNode())) {
+      for (var i = 0; i < node.data.length; i++) {
+        if (!node.data[i].trim()) continue;
+        range.setStart(node, i);
+        range.setEnd(node, i + 1);
+        lefts.push(range.getBoundingClientRect().left);
+      }
+    }
+    return lefts;
+  }
+
   function reveal(el) {
     var label = labelFor(el);
+    var kerned = glyphLefts(el);
     var split = window.SplitText.create(el, {
-      type: "lines",
-      mask: "lines",
+      type: "words,chars",
+      mask: "words",
     });
     // Replaces SplitText's own label; revert() still removes it afterwards.
     el.setAttribute("aria-label", label);
@@ -74,13 +110,23 @@
       m.style.paddingBottom = MASK_BLEED;
       m.style.marginTop = "-" + MASK_BLEED;
       m.style.marginBottom = "-" + MASK_BLEED;
+      m.style.paddingLeft = MASK_BLEED_X;
+      m.style.paddingRight = MASK_BLEED_X;
+      m.style.marginLeft = "-" + MASK_BLEED_X;
+      m.style.marginRight = "-" + MASK_BLEED_X;
     });
+
+    if (split.chars.length === kerned.length) {
+      split.chars.forEach(function (c, i) {
+        var dx = kerned[i] - c.getBoundingClientRect().left;
+        if (Math.abs(dx) > 0.1) window.gsap.set(c, { x: dx });
+      });
+    }
 
     el.style.visibility = "";
 
-    window.gsap.from(split.lines, {
-      // Start below the padded mask's bottom edge, not just the line's.
-      yPercent: 130,
+    window.gsap.from(split.chars, {
+      yPercent: FROM_Y,
       duration: DURATION,
       stagger: STAGGER,
       ease: EASE,
