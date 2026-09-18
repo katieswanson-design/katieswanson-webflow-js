@@ -81,12 +81,3 @@
     transform: none;
   }
 }
-
-/* Filter tokens are data for bookmarks-filter.js, never shown. */
-[data-filter-tokens] { display: none; }
-
-/* Let grid items and the card's text column shrink below their content's
-   natural width, so a long one-line title ends in an ellipsis instead of
-   widening its column (and that card's 16:9 thumbnail) or overflowing it. */
-[data-filter-list] > * { min-width: 0; }
-.content-card .top-left { min-width: 0; }
