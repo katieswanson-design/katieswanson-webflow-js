@@ -582,29 +582,47 @@
       setOpen(false);
     });
 
-    // A link inside the panel navigates away; close first so the toggle label
-    // and inert state are never left stale if the browser restores the page
-    // from bfcache.
+    // Close without animation and WITHOUT moving focus to the menu button.
+    // Returning focus to the trigger is right when the menu is dismissed
+    // (Escape, the close button) because the user stays put. It's wrong on the
+    // way out: it painted a focus ring on the button for the instant before
+    // navigation, which Katie saw flickering while picking links.
+    function closeSilently() {
+      if (!isOpen) return;
+      isOpen = false;
+      if (timeline) { timeline.kill(); timeline = null; }
+      applyClip(false);
+      releasePage();
+      progress = 0;
+      applyState(false, false);
+    }
+
+    // A link that leaves the page keeps the menu OPEN until the next document
+    // replaces it. Closing on click (as this used to) exposed the page being
+    // left for the whole network wait — ~50 ms after the click the menu was
+    // gone and the old page sat there until the new one arrived, which Katie
+    // saw as the current page flashing before the new one. Left open, the
+    // cross-document view transition fades straight from menu to new page.
     //
-    // `false` for moveFocus, and that argument is the whole point: this is the
-    // one close that must NOT send focus back to the menu button. Returning
-    // focus to the trigger is correct when a dialog is DISMISSED — Escape, the
-    // close button — because the user is staying put and needs somewhere to be.
-    // Here they are leaving, and the incoming page owns focus. Sending it to
-    // the toggle first painted a focus ring on the button for the instant
-    // before navigation, which Katie saw flickering on and off while picking
-    // links. Whether it showed at all depended on :focus-visible heuristics
-    // racing the navigation, which is why it looked intermittent.
+    // Only a same-document link (a #hash on the page already showing) closes
+    // on click, because nothing replaces the menu there. Modified clicks and
+    // new-tab links leave it alone: the user is staying on this page.
     Array.prototype.forEach.call(links, function (link) {
-      link.addEventListener("click", function () {
+      link.addEventListener("click", function (e) {
         if (!isOpen) return;
-        isOpen = false;
-        if (timeline) { timeline.kill(); timeline = null; }
-        applyClip(false);
-        releasePage();
-        progress = 0;
-        applyState(false, false);
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        if (link.target && link.target !== "_self") return;
+        var dest = new URL(link.href, location.href);
+        var samePage = dest.origin === location.origin &&
+          dest.pathname === location.pathname && dest.search === location.search;
+        if (samePage && dest.hash) closeSilently();
       });
+    });
+
+    // Back/forward can restore this page from the bfcache with the menu still
+    // open (it was open when the user left). Reset it on the way back in.
+    window.addEventListener("pageshow", function (e) {
+      if (e.persisted) closeSilently();
     });
 
     if (window.gsap && !reducedMotion()) {
