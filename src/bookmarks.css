@@ -100,3 +100,19 @@
     transition: none;
   }
 }
+
+/* ---- Filter row: progressive blur on the right edge ---------------------- */
+/* The blur and its four masked backdrop-filter layers are Designer classes
+   (.filter-blur, .filter-blur_layer + is-2/3/4). bookmarks-filter.js sets
+   data-scroll-end when the row is at its end or doesn't overflow; an
+   attribute selector can't be authored in the Designer. */
+[data-filter-blur][data-scroll-end] {
+  opacity: 0;
+}
+/* Reduced transparency: a blur over the pills is purely decorative, so drop
+   it rather than substitute anything. */
+@media (prefers-reduced-transparency: reduce) {
+  [data-filter-blur] {
+    display: none;
+  }
+}

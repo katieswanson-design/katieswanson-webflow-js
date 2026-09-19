@@ -18,6 +18,9 @@
  * button's target and an item's tokens can come from bound TEXT, because the
  * API cannot bind attribute values to CMS fields.
  *
+ * Also: an optional [data-filter-blur] inside the scrolling button row gets
+ * data-scroll-end while there is nothing more to scroll to (see initBlur).
+ *
  * Markup contract (Designer):
  *
  *   <div data-filter-group>
@@ -190,10 +193,30 @@
     });
   }
 
+  // Progressive blur on the right edge of the scrolling filter row. The blur
+  // (a sticky, aria-hidden [data-filter-blur] inside the row) only makes sense
+  // while more pills sit off to the right, so it gets data-scroll-end when the
+  // row is scrolled to its end or doesn't overflow at all, and CSS fades it.
+  function initBlur(blur) {
+    var row = blur.parentElement;
+    function update() {
+      var atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 1;
+      blur.toggleAttribute("data-scroll-end", atEnd);
+    }
+    row.addEventListener("scroll", update, { passive: true });
+    if ("ResizeObserver" in window) new ResizeObserver(update).observe(row);
+    else window.addEventListener("resize", update);
+    update();
+  }
+
   function init() {
     Array.prototype.forEach.call(
       document.querySelectorAll("[data-filter-group]"),
       initGroup
+    );
+    Array.prototype.forEach.call(
+      document.querySelectorAll("[data-filter-blur]"),
+      initBlur
     );
   }
 
