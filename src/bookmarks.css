@@ -13,14 +13,29 @@
  *   - Line clamping needs -webkit-* properties, which the Designer rejects.
  */
 
-/* ---- Content card: arrow appears on hover and on keyboard focus ---------- */
-/* Rest state (opacity 0) is on .content-card-arrow in the Designer. */
-.content-card .content-card-arrow {
-  transition: opacity 200ms cubic-bezier(0.165, 0.84, 0.44, 1);
-}
+/* ---- Content card: arrow slides in on hover and on keyboard focus -------- */
+/* Rest state is in the Designer: .content-card-arrow sits at opacity 0,
+   translate(-100%, 100%) — parked below-left, the way it points — and
+   .content-card-action (overflow hidden) masks it. Transition is there too. */
 .content-card:hover .content-card-arrow,
 .content-card:focus-visible .content-card-arrow {
   opacity: 1;
+  transform: translate(0, 0);
+}
+
+/* ---- Content card: directional fill (adapted from Osmo's directional
+   button). The circle's rest state (scale 0, 0.7s transition, colour token)
+   is .content-card-fill in the Designer; card-hover.js moves its origin to
+   the point where the cursor entered or left. Keyboard focus has no cursor,
+   so it grows from the centre. Only where hover is real, so a tap on a phone
+   doesn't leave the fill stuck on. */
+@media (hover: hover) {
+  .content-card:hover .content-card-fill {
+    transform: translate(-50%, -50%) scale(1) rotate(0.001deg);
+  }
+}
+.content-card:focus-visible .content-card-fill {
+  transform: translate(-50%, -50%) scale(1) rotate(0.001deg);
 }
 
 /* ---- Content card: description never exceeds three lines ---------------- */
@@ -75,9 +90,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .content-card .content-card-arrow,
   [data-filter-item][data-filter-status] {
     transition: none;
     transform: none;
+  }
+  /* Fill and arrow still appear, but instantly: state, not motion. */
+  .content-card .content-card-arrow,
+  .content-card .content-card-fill {
+    transition: none;
   }
 }
