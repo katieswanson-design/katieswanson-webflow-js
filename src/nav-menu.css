@@ -211,3 +211,21 @@
     font-size: 24px;
   }
 }
+
+/* 4 ------------------------------------------------------------------------
+ * Menu handoff: the incoming page arrives already covered by the menu.
+ *
+ * menu-handoff.js (blocking, in the header) sets .nav-handoff on <html> when
+ * this navigation started from a menu link, so the panel is painted in the
+ * first frame and nav-menu.js can retreat the diagonal edge off it. Without a
+ * rule here the panel would stay hidden until the footer script ran, and the
+ * new page would flash before being covered.
+ *
+ * Inline styles from nav-menu.js override this the moment it takes over, and
+ * the class is removed on a timer regardless, so a failed script cannot leave
+ * the panel stuck over the page.
+ */
+.nav-handoff [data-nav-menu] {
+  opacity: 1;
+  visibility: visible;
+}

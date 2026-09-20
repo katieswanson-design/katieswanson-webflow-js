@@ -280,6 +280,9 @@
     // where it actually got to rather than snapping to an end state.
     var progress = 0;
 
+    // True only while the close that finishes a menu handoff is running.
+    var handoffClosing = false;
+
     function setOpen(open) {
       if (open === isOpen) return;
 
@@ -340,7 +343,11 @@
             // already are, which is nowhere.
             restRows();
             releasePage();
-            applyState(false);
+            // A handoff close is the arrival animation of a page the visitor
+            // just navigated to. Moving focus to the menu button there would
+            // hijack a fresh page load; the normal close keeps it.
+            applyState(false, handoffClosing ? false : undefined);
+            handoffClosing = false;
           }
         }
       });
@@ -643,7 +650,16 @@
         var dest = new URL(link.href, location.href);
         var samePage = dest.origin === location.origin &&
           dest.pathname === location.pathname && dest.search === location.search;
-        if (samePage && dest.hash) closeSilently();
+        if (samePage && dest.hash) {
+          closeSilently();
+          return;
+        }
+        // Leaving the page: the menu stays up (see above), and the NEXT
+        // document finishes the diagonal. menu-handoff.js reads this key in its
+        // <head> and paints the panel before the new page's first frame.
+        if (dest.origin === location.origin && !reducedMotion()) {
+          try { sessionStorage.setItem("navmenu:handoff", String(Date.now())); } catch (err) {}
+        }
       });
     });
 
@@ -652,6 +668,29 @@
     window.addEventListener("pageshow", function (e) {
       if (e.persisted) closeSilently();
     });
+
+    // Arriving from a menu link: menu-handoff.js has already painted the panel
+    // (class on <html>), so this page starts where the previous one left off —
+    // menu fully open — and the diagonal edge retreats to reveal it. That is
+    // the reveal the outgoing page cannot play without exposing the page being
+    // left. Anything missing (no GSAP, reduced motion) simply skips it.
+    if (window.__navMenuHandoff && window.gsap && !reducedMotion()) {
+      window.__navMenuHandoff = false;
+      handoffClosing = true;
+      isOpen = true;
+      progress = 1;
+      window.gsap.set(inner, SETTLED);
+      if (revealTargets.length) window.gsap.set(revealTargets, { yPercent: 0, opacity: 1 });
+      // Inline styles now own the panel, so the boot class has done its job.
+      applyState(true, false);
+      document.documentElement.classList.remove("nav-handoff");
+      // Two frames: one to paint the open menu, one so the tween starts from a
+      // frame the visitor actually saw rather than jumping mid-reveal.
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { setOpen(false); });
+      });
+      return;
+    }
 
     if (window.gsap && !reducedMotion()) {
       window.gsap.set(inner, REST);
