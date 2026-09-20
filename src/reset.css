@@ -375,3 +375,16 @@ html {
     padding-bottom: 0;
   }
 }
+
+/* ---- Reduced transparency: drop the bottom nav's progressive blur --------
+ * .nav-blur (nav component) is four masked backdrop-filter layers behind the
+ * fixed bottom bar — decorative, so for someone who asked their OS to reduce
+ * transparency it just goes away rather than being swapped for a scrim. The
+ * media query is not expressible in the Webflow Designer, which is why it is
+ * here; the blur itself is Designer classes.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  .nav-blur {
+    display: none;
+  }
+}
