@@ -663,6 +663,25 @@
       });
     });
 
+    // The bottom bar's links (guidelines, space) are not menu links, but Katie
+    // wants the same arrival: the diagonal, with an EMPTY panel rather than the
+    // menu's rows. Same one-shot key, marked "plain:" — menu-handoff.js paints
+    // the panel with its content hidden and the handoff below keeps the rows
+    // parked. Nothing closes here: the menu is not open, this only flags the
+    // navigation.
+    Array.prototype.forEach.call(document.querySelectorAll(".nav-bottom a[href]"), function (link) {
+      link.addEventListener("click", function (e) {
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        if (link.target && link.target !== "_self") return;
+        if (reducedMotion()) return;
+        var dest = new URL(link.href, location.href);
+        if (dest.origin !== location.origin) return;
+        var samePage = dest.pathname === location.pathname && dest.search === location.search;
+        if (samePage) return; // a hash on this page replaces nothing
+        try { sessionStorage.setItem("navmenu:handoff", "plain:" + Date.now()); } catch (err) {}
+      });
+    });
+
     // Back/forward can restore this page from the bfcache with the menu still
     // open (it was open when the user left). Reset it on the way back in.
     window.addEventListener("pageshow", function (e) {
@@ -675,15 +694,23 @@
     // the reveal the outgoing page cannot play without exposing the page being
     // left. Anything missing (no GSAP, reduced motion) simply skips it.
     if (window.__navMenuHandoff && window.gsap && !reducedMotion()) {
+      var plain = window.__navMenuHandoff === "plain";
       window.__navMenuHandoff = false;
       handoffClosing = true;
       isOpen = true;
       progress = 1;
-      window.gsap.set(inner, SETTLED);
-      if (revealTargets.length) window.gsap.set(revealTargets, { yPercent: 0, opacity: 1 });
-      // Inline styles now own the panel, so the boot class has done its job.
+      window.gsap.set(inner, plain ? REST : SETTLED);
+      // Plain: the rows stay parked, so the panel is just colour behind the
+      // edge. The class hid them for the first frames; this keeps them hidden
+      // and leaves them where the next real open expects to find them.
+      window.gsap.set(revealTargets, plain ? { yPercent: 120, opacity: 0 } : { yPercent: 0, opacity: 1 });
+      // Inline styles now own the panel, so the boot class has done its job —
+      // except on a plain handoff, where the class is also what hides the
+      // panel's contact block (revealTargets only covers the row words). It is
+      // left in place there and removed by menu-handoff.js's own timer, which
+      // outlasts the sweep.
       applyState(true, false);
-      document.documentElement.classList.remove("nav-handoff");
+      if (!plain) document.documentElement.classList.remove("nav-handoff");
       // Two frames: one to paint the open menu, one so the tween starts from a
       // frame the visitor actually saw rather than jumping mid-reveal.
       requestAnimationFrame(function () {

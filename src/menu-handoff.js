@@ -40,13 +40,19 @@
     sessionStorage.removeItem(KEY);
 
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    if (!(Date.now() - parseInt(raw, 10) < MAX_AGE)) return;
+    if (!(Date.now() - parseInt(raw.replace("plain:", ""), 10) < MAX_AGE)) return;
 
     document.documentElement.classList.add(CLASS);
-    window.__navMenuHandoff = true;
+    // "plain" is a link OUTSIDE the menu (the bottom bar): the same diagonal,
+    // but the panel arrives empty — showing menu rows nobody opened would be a
+    // different thing entirely. The class hides the content; nav-menu.js reads
+    // the same word off the flag and skips revealing the rows.
+    if (raw.indexOf("plain:") === 0) document.documentElement.classList.add(CLASS + "-plain");
+    window.__navMenuHandoff = raw.indexOf("plain:") === 0 ? "plain" : "menu";
 
     setTimeout(function () {
       document.documentElement.classList.remove(CLASS);
+      document.documentElement.classList.remove(CLASS + "-plain");
     }, HOLD_MS);
   } catch (e) {}
 })();

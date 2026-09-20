@@ -229,3 +229,16 @@
   opacity: 1;
   visibility: visible;
 }
+
+/* 5 ------------------------------------------------------------------------
+ * Plain handoff: the diagonal without the menu.
+ *
+ * Bottom-bar links (guidelines, space) get the same reveal as a menu link, but
+ * the panel must arrive EMPTY — rows the visitor never opened flashing past
+ * would read as the menu opening itself. The panel colour and the edge do all
+ * the work. nav-menu.js keeps the rows parked for this case; this rule covers
+ * the frames before it runs.
+ */
+.nav-handoff-plain [data-nav-menu] .nav-menu_inner {
+  opacity: 0;
+}
