@@ -347,6 +347,7 @@
             // just navigated to. Moving focus to the menu button there would
             // hijack a fresh page load; the normal close keeps it.
             applyState(false, handoffClosing ? false : undefined);
+            panel.removeAttribute("aria-hidden");
             handoffClosing = false;
           }
         }
@@ -704,13 +705,23 @@
       // edge. The class hid them for the first frames; this keeps them hidden
       // and leaves them where the next real open expects to find them.
       window.gsap.set(revealTargets, plain ? { yPercent: 120, opacity: 0 } : { yPercent: 0, opacity: 1 });
-      // Inline styles now own the panel, so the boot class has done its job —
-      // except on a plain handoff, where the class is also what hides the
-      // panel's contact block (revealTargets only covers the row words). It is
-      // left in place there and removed by menu-handoff.js's own timer, which
-      // outlasts the sweep.
-      applyState(true, false);
-      if (!plain) document.documentElement.classList.remove("nav-handoff");
+      if (plain) {
+        // NOT the open state: nothing is open. Labelling the toggle "close",
+        // flipping aria-expanded or inerting the page for a transition the
+        // visitor reads as a page arrival would all be lies — and the label
+        // visibly flickered to "close" mid-sweep. Just paint the panel, and
+        // hide it from assistive tech while it is on screen.
+        panel.style.opacity = "1";
+        panel.style.visibility = "visible";
+        panel.style.pointerEvents = "none";
+        panel.setAttribute("aria-hidden", "true");
+        // The boot class also hides the panel's contact block (revealTargets
+        // covers only the row words), so it stays until menu-handoff.js's own
+        // timer drops it, which outlasts the sweep.
+      } else {
+        applyState(true, false);
+        document.documentElement.classList.remove("nav-handoff");
+      }
       // Two frames: one to paint the open menu, one so the tween starts from a
       // frame the visitor actually saw rather than jumping mid-reveal.
       requestAnimationFrame(function () {
