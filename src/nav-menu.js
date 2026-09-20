@@ -334,6 +334,11 @@
           applyClip(false);
           panel.style.overflow = "";
           if (!open) {
+            // Closing leaves the rows on screen so the edge clips them away, so
+            // they have to be put back to their pre-open state here instead —
+            // otherwise the next open would animate them from where they
+            // already are, which is nowhere.
+            restRows();
             releasePage();
             applyState(false);
           }
@@ -366,33 +371,38 @@
         }, 0);
       }
 
-      if (revealTargets.length) {
+      // Opening: the rows arrive after the edge has passed. Closing: they are
+      // NOT animated out. Fading them first left the edge retreating across an
+      // empty panel the same colour as the page behind it, so the diagonal was
+      // invisible for the whole second half of the sweep (Katie, 2026-09-20).
+      // Letting the edge clip them away is the actual reverse of the open.
+      if (open && revealTargets.length) {
         timeline.to(revealTargets, {
-          yPercent: open ? 0 : 120,
-          opacity: open ? 1 : 0,
-          duration: open ? LINK_DURATION : LINK_OUT_DURATION,
-          stagger: open ? LINK_STAGGER : 0,
-          ease: open ? LINK_EASE : LINK_OUT_EASE
-        }, open ? duration * 0.35 : 0);
+          yPercent: 0,
+          opacity: 1,
+          duration: LINK_DURATION,
+          stagger: LINK_STAGGER,
+          ease: LINK_EASE
+        }, duration * 0.35);
       }
 
       // Below the hover breakpoint the previews come in on their own, after the
       // words have arrived — never at the same time, or the row appears to
       // assemble itself in two places at once. Closing pulls them back first so
       // the words are not left hanging in a gap the image used to fill.
-      if (!HOVER_THUMBS.matches) {
+      if (open && !HOVER_THUMBS.matches) {
         var thumbs = autoThumbs();
         if (thumbs.length) {
           timeline.to(thumbs, {
             width: function (i, el) {
-              return open ? Math.round(el.offsetHeight * THUMB_RATIO) : 0;
+              return Math.round(el.offsetHeight * THUMB_RATIO);
             },
-            marginRight: open ? thumbGap() : 0,
-            opacity: open ? 1 : 0,
-            duration: open ? THUMB_IN_DURATION : LINK_OUT_DURATION * 0.5,
-            stagger: open ? THUMB_IN_STAGGER : 0,
+            marginRight: thumbGap(),
+            opacity: 1,
+            duration: THUMB_IN_DURATION,
+            stagger: THUMB_IN_STAGGER,
             ease: THUMB_EASE
-          }, open ? duration * 0.35 + LINK_DURATION * 0.6 : 0);
+          }, duration * 0.35 + LINK_DURATION * 0.6);
         }
       }
     }
@@ -469,6 +479,23 @@
         if (thumb && getComputedStyle(thumb).display !== "none") out.push(thumb);
       });
       return out;
+    }
+
+    // Put the rows (and the previews that open with them below the hover
+    // breakpoint) back to their pre-open state. Called once a close has
+    // finished, because the close no longer animates them out — the clip edge
+    // takes them off screen instead.
+    function restRows() {
+      if (!window.gsap) return;
+      if (revealTargets.length) {
+        window.gsap.set(revealTargets, { yPercent: 120, opacity: 0 });
+      }
+      if (!HOVER_THUMBS.matches) {
+        var thumbs = autoThumbs();
+        if (thumbs.length) {
+          window.gsap.set(thumbs, { width: 0, marginRight: 0, opacity: 0 });
+        }
+      }
     }
 
     function clearThumb(thumb) {
@@ -592,6 +619,7 @@
       isOpen = false;
       if (timeline) { timeline.kill(); timeline = null; }
       applyClip(false);
+      restRows();
       releasePage();
       progress = 0;
       applyState(false, false);
