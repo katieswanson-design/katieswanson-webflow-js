@@ -35,6 +35,12 @@
  * The gap grows WITH the image, so the heading starts flush and is pushed
  * aside — which is why `.scale-wrapper` has no flex gap of its own.
  *
+ * Reveals that start together are spaced out, one after another in reading
+ * order, STAGGER apart. The hero statement's three inline pills all enter the
+ * viewport on load and should arrive in sequence, not as one pop. A reveal
+ * that starts on its own — a section header scrolled to — plays immediately,
+ * exactly as before.
+ *
  * Plays once per header. Reduced motion, a missing GSAP, or a browser without
  * IntersectionObserver all get the revealed state immediately.
  *
@@ -52,7 +58,22 @@
   var DURATION = 0.55;
   var EASE = "power3.out";
 
+  // Gap between the starts of reveals that begin together. The nav's 0.08s
+  // thumbnail stagger overlaps too much to read as "one after the other" at
+  // this duration; at 0.25s power3.out has the previous pill ~85% grown.
+  var STAGGER = 0.25;
+
   var REVEALED = "is-revealed";
+
+  // Earliest time (seconds, performance clock) the next reveal may start.
+  var nextStart = 0;
+
+  function startDelay() {
+    var now = window.performance.now() / 1000;
+    var start = Math.max(now, nextStart);
+    nextStart = start + STAGGER;
+    return start - now;
+  }
 
   // Start once the row is a little way into the viewport rather than the
   // instant its top edge crosses the bottom, so the growth is actually seen.
@@ -92,6 +113,7 @@
         marginRight: gap,
         opacity: 1,
         duration: DURATION,
+        delay: startDelay(),
         ease: EASE,
         onComplete: function () {
           finish(el);
