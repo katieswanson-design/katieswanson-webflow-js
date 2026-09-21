@@ -2,14 +2,18 @@
  * scale-reveal.js — header images grow in when they scroll into view, exactly
  * the way the nav menu's thumbnails grow in when the menu opens.
  *
- * Markup contract (Designer):
+ * Markup contract (Designer) — the `section header` component, placed inside
+ * the section tagline (`.section-heading`, a text block, NOT a heading: the
+ * section's h2 is its mono eyebrow, since 2026-09-21):
  *
- *   <div class="scale-wrapper">                       row: image, then heading
+ *   <div class="scale-wrapper">                       row: image, then text
  *     <div class="image-scale" data-scale-reveal>     the pill that grows
  *       <img class="scale-image" alt="">              absolute, object-fit cover
  *     </div>
- *     <h2 class="section-heading">…</h2>
+ *     <div>…</div>                                    bound to the `heading` prop
  *   </div>
+ *
+ * The hero statement's inline pills use the same attribute on a bare <img>.
  *
  * One attribute is the whole API: put `data-scale-reveal` on the image box of
  * any new header and it animates. Its parent row is what gets watched.
@@ -19,8 +23,9 @@
  *   .image-scale               width 0, opacity 0, margin-right 0 — hidden
  *   .image-scale.is-revealed   width auto, opacity 1, margin-right 16 (8 ≤991)
  *
- * `aspect-ratio: 16 / 10` plus a per-breakpoint height (96 / 72 / 48) is what
- * makes `width: auto` resolve to the right pill size. The script never holds a
+ * `aspect-ratio: 16 / 10` plus a height that tracks the tagline (a cqi clamp,
+ * 0.83 × the type, 96px at the 7.25rem cap) is what makes `width: auto`
+ * resolve to the right pill size. The script never holds a
  * size of its own: it briefly applies the revealed class, measures what the
  * Designer says that looks like at the current breakpoint, removes it again in
  * the same frame (nothing paints in between), and tweens to those numbers.
