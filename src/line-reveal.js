@@ -93,8 +93,11 @@
   //    font-kerning: none; Namma never reverts.)
   //  - Line breaks. When the heading wraps (phones: 4 lines), the engine can
   //    break the split's inline-block words differently from the plain text,
-  //    so words land on different lines. Suspected on iPhone (WebKit): Katie
-  //    saw a jump on mobile that Chrome at 390 did not reproduce.
+  //    so words land on different lines. CONFIRMED, both engines, 2026-09-21:
+  //    WebKit at 390 breaks /skills a word early ("left," / "right, ops" where
+  //    the text has "left, right," / "ops"), and Chrome at 390 breaks
+  //    /bookmarks and /guidelines a word late. It is not an iPhone quirk; each
+  //    engine just trips on different headings.
   // So: move each word to where its first glyph really is, then
   // nudge each char to its kerned position within it (masks never clip
   // sideways, so a nudge can't crop a glyph).
@@ -122,9 +125,31 @@
     return range.getBoundingClientRect();
   }
 
+  // The plain heading's line step, read off the glyph tops already measured.
+  // Every glyph on a line shares one text-box top, so the distinct tops are
+  // the lines and the smallest gap between them is the step. One line leaves
+  // it Infinity, which is what we want: nothing can then be a line apart.
+  function lineStep(glyphs) {
+    var tops = [];
+    glyphs.forEach(function (g) {
+      var t = Math.round(g.top * 10) / 10;
+      if (tops.indexOf(t) === -1) tops.push(t);
+    });
+    tops.sort(function (a, b) {
+      return a - b;
+    });
+    var step = Infinity;
+    for (var i = 1; i < tops.length; i++) {
+      var d = tops[i] - tops[i - 1];
+      if (d > 1 && d < step) step = d;
+    }
+    return step;
+  }
+
   function matchLayout(split, glyphs) {
     if (split.chars.length !== glyphs.length) return;
     var gsap = window.gsap;
+    var step = lineStep(glyphs);
     var k = 0;
     split.words.forEach(function (word) {
       var chars = split.chars.filter(function (c) {
@@ -132,17 +157,32 @@
       });
       if (!chars.length) return;
 
-      // Move the WORD inside its mask, never the mask itself: the mask's
-      // edges are the clip, and moving them eats the room left for ascenders
-      // and descenders. WebKit lays the split ~8px lower than the heading at
-      // 390; shifting the mask up to match left the "j" in "junkie" 3px of
-      // room, so its tail was clipped through power4.out's long settle and
-      // "grew out" at the end (v1.0.105, measured in Playwright WebKit).
+      // Normally move the WORD inside its mask, never the mask itself: the
+      // mask's edges are the clip, and moving them eats the room left for
+      // ascenders and descenders. WebKit lays the split ~8px lower than the
+      // heading at 390; shifting the mask up to match left the "j" in
+      // "junkie" 3px of room, so its tail was clipped through power4.out's
+      // long settle and "grew out" at the end (v1.0.105, measured in
+      // Playwright WebKit).
+      //
+      // That holds for a sub-line nudge, which is what the mask bleed exists
+      // to absorb. It inverts when the split wrapped this word onto a
+      // different LINE (see the note above): dy is then a whole line, and
+      // driving the word that far inside a mask that stayed behind drags it
+      // clean out of the clip. On /skills at 390 in WebKit that left 30% of
+      // "right," on screen — a horizontal band of glyph, which is what Katie
+      // photographed. So carry a line-sized dy on the MASK instead. The word
+      // rides along inside it, so mask and glyphs move together and the bleed
+      // above and below is preserved exactly; only the clip's position in the
+      // heading changes, which is the whole point.
       var first = textRect(chars[0]);
       var dx = glyphs[k].left - first.left;
       var dy = glyphs[k].top - first.top;
+      var mask = word.parentNode;
+      var isMask = Array.prototype.indexOf.call(split.masks, mask) !== -1;
+      var carrier = Math.abs(dy) >= step / 2 && isMask ? mask : word;
       if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-        gsap.set(word, { x: dx, y: dy });
+        gsap.set(carrier, { x: dx, y: dy });
       }
 
       chars.forEach(function (c, j) {
