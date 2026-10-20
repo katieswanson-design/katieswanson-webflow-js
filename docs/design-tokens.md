@@ -222,3 +222,61 @@ variables that exist in no collection.
 - `custom_value` writes always fail.
 - `remove_style` always fails.
 - `row-gap` rejects a variable; use the legacy `grid-row-gap`.
+
+---
+
+## Status colours
+
+Added 2026-10-20. Aliases in the `Color` collection pointing at the
+`primitives-color` extended ramps (Tailwind v4 values). Yellow, teal and the
+other extended ramps are held as buffer; nothing binds to them yet.
+
+| Status | Ramp |
+|---|---|
+| error | extended-red |
+| warning | extended-amber |
+| success | extended-green |
+| info | extended-blue |
+
+### Roles
+
+| Role | Light | Dark | Rule |
+|---|---|---|---|
+| `status/*/text` | 700 (success: 800) | 300 | 4.5:1 on page and on own surface. Also used for status icons. |
+| `status/*/surface` | 50 | 950 | Tinted background behind a status message. |
+| `status/*/border` | 600 | 500 | 3:1, so an outline can be the only error signal on a field. |
+| `status/error/solid` | red/600 | red/600 | Destructive button fill. |
+| `status/error/on-solid` | base/white | base/white | Text on the solid fill. Not `text/inverse`, which turns navy in dark mode and fails on red (3.75:1). |
+
+### Contrast (WCAG 2.1, computed from the OKLCH values)
+
+Text:
+
+| Status | on white | on neutral/100 | on own 50 | dark on navy/1000 | on navy/800 | on own 950 |
+|---|---|---|---|---|---|---|
+| error | 6.42 | 5.82 | 5.88 | 10.52 | 6.66 | 8.40 |
+| warning | 5.05 | 4.58 | 4.87 | 13.98 | 8.84 | 10.37 |
+| success (800) | 7.09 | 6.43 | 6.78 | 14.46 | 9.15 | 10.67 |
+| info | 6.82 | 6.18 | 6.26 | 11.16 | 7.06 | 8.13 |
+
+Border:
+
+| Status | on white | on own 50 | dark on navy/1000 | on navy/800 | on own 950 |
+|---|---|---|---|---|---|
+| error | 4.76 | 4.36 | 5.29 | 3.35 | 4.23 |
+| warning | 3.19 | 3.08 | 9.42 | 5.96 | 6.99 |
+| success | 3.22 | 3.07 | 9.09 | 5.75 | 6.71 |
+| info | 5.26 | 4.82 | 5.37 | 3.40 | 3.91 |
+
+Error solid: white on red/600 is 4.76:1; red/600 against navy/1000 is 4.24:1.
+
+**Decisions 2026-10-20, after a visual review:**
+
+- Success text is green/800 in light mode, not 700. Green/700 was 4.48:1 on
+  `surface/secondary` (neutral/100), just under AA. Green/800 passes on every
+  light surface. Dark mode stays green/300.
+- Info uses blue, not teal. Teal (186 deg) sat between success green (150) and
+  brand emerald (160), and teal/700 vs green/700 was only 1.09:1, so the two
+  differed by hue alone. Blue (264 deg) separates clearly. Status must still
+  never rely on colour alone; pair it with a label or icon (playbook example 23).
+

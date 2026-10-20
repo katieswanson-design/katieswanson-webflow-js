@@ -1,0 +1,54 @@
+/**
+ * motion.css - duration and easing tokens for katieswanson.design.
+ *
+ * Webflow variables have no duration or easing type, so time and curves live
+ * here. Values that do fit a Webflow variable (scale, distance, blur) live in
+ * the Designer's Motion collection instead and share this --_motion--- prefix.
+ *
+ * The scale is built from values already in use in src/, so existing files can
+ * move onto it without visible change:
+ *   2xs  100ms  press feedback, label blur morph
+ *   xs   150ms  exits, menu fade-out
+ *   sm   200ms  toggles, small state changes
+ *   md   250ms  default UI entrance (bookmarks exit already uses 250ms)
+ *   lg   350ms  popovers, toasts, modals (bookmarks enter already uses 350ms)
+ *   xl   500ms  content reveals (hover-peek, expanding-panels)
+ *   2xl  700ms  large layout moves (expanding-panels flex-grow)
+ *
+ * Easing, also taken from src/:
+ *   out             UI entrances and feedback          (bookmarks enter)
+ *   out-expressive  reveals and layout moves           (hover-peek, panels, view-transition)
+ *   in              exits only                         (bookmarks exit)
+ *   in-out          things that travel across screen   (view-transition)
+ *   standard        colour and theme washes            (theme-transition)
+ *
+ * Stagger and delay are times too, so they live here rather than in Webflow.
+ *
+ * Reduced motion is handled once, in reset.css, which collapses every CSS
+ * transition and animation to 0.01ms. Nothing here needs its own override.
+ *
+ * Loaded site-wide via a <link> in Site settings > Custom code > Head.
+ * Load before any file that reads these tokens.
+ */
+
+:root {
+  --_motion---duration--instant: 0ms;
+  --_motion---duration--2xs: 100ms;
+  --_motion---duration--xs: 150ms;
+  --_motion---duration--sm: 200ms;
+  --_motion---duration--md: 250ms;
+  --_motion---duration--lg: 350ms;
+  --_motion---duration--xl: 500ms;
+  --_motion---duration--2xl: 700ms;
+
+  --_motion---ease--out: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --_motion---ease--out-expressive: cubic-bezier(0.16, 1, 0.3, 1);
+  --_motion---ease--in: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+  --_motion---ease--in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --_motion---ease--standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --_motion---ease--linear: linear;
+
+  --_motion---stagger--step: 100ms;
+  --_motion---delay--tooltip: 500ms;
+  --_motion---delay--tooltip-warm: 0ms;
+}

@@ -30,6 +30,7 @@ fly, so the source stays readable here and ships small.
 | `src/case-study.css` | One `max-width: 1200px` grid correction Webflow's breakpoints can't express. | Case study pages |
 | `src/bunny-bg.css` | Status styling for the Bunny HLS background video player. Structural styles stay in the Designer. | Site-wide |
 | `src/reset.css` | Global reset, base styles and Client-First-style utilities. | Site-wide |
+| `src/motion.css` | Duration and easing tokens (`--_motion---*`). Load before any file that reads them. | Site-wide |
 
 ## Adding CSS to Webflow
 
