@@ -73,6 +73,16 @@
  *     button[data-pb-confirm-accept]          deletes
  *   [data-pb-confirm-result]                  "Project deleted.", tabindex="-1"
  *   Before: the trigger deletes immediately. After: it opens the dialog.
+ *
+ * Page hints (WCAG links in the example headers), outside the mode toggle
+ *   a[data-pb-hint]                           trigger, keeps its own aria-label
+ *     [data-pb-hint-tooltip]                  aria-hidden; gets .is-visible, and
+ *                                             .is-instant when it opens warm
+ *   One group for the whole page, following the guideline the page teaches:
+ *   the first hint waits --_motion---delay--tooltip, a neighbor opened within
+ *   300ms of the last one opens at --_motion---delay--tooltip-warm. Hints stay
+ *   open while the pointer moves onto them (a short grace covers the gap) and
+ *   Escape dismisses them (WCAG 1.4.13).
  * ---------------------------------------------------------------------------
  *
  * Motion values come from motion.css tokens set in the Designer. Reduced
@@ -543,8 +553,68 @@
     setMode(false, false);
   }
 
+  /* ---- Page hints (WCAG links) ---------------------------------------- */
+
+  var HINT_GRACE = 120; // ms to cross the gap between a hint's trigger and tooltip
+
+  function initHints() {
+    var hints = qa(document, '[data-pb-hint]');
+    if (!hints.length) return;
+    var delay = tokenMs('--_motion---delay--tooltip', 500);
+    var warmDelay = tokenMs('--_motion---delay--tooltip-warm', 0);
+    var showTimer = null;
+    var hideTimer = null;
+    var lastHide = 0;
+    var current = null;
+
+    function tipOf(t) { return q(t, '[data-pb-hint-tooltip]'); }
+
+    function hide(t) {
+      var tip = tipOf(t);
+      if (tip && tip.classList.contains('is-visible')) {
+        tip.classList.remove('is-visible');
+        lastHide = Date.now();
+      }
+      if (current === t) current = null;
+    }
+
+    function show(t) {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+      if (current === t) return;
+      var warm = current !== null || Date.now() - lastHide < TIP_WARM;
+      if (current) hide(current);
+      var tip = tipOf(t);
+      if (!tip) return;
+      current = t;
+      tip.classList.toggle('is-instant', warm);
+      showTimer = setTimeout(function () {
+        if (current === t) tip.classList.add('is-visible');
+      }, warm ? warmDelay : delay);
+    }
+
+    function leave(t, grace) {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+      if (grace) hideTimer = setTimeout(function () { hide(t); }, HINT_GRACE);
+      else hide(t);
+    }
+
+    hints.forEach(function (t) {
+      t.addEventListener('pointerenter', function () { show(t); });
+      t.addEventListener('pointerleave', function () { leave(t, true); });
+      t.addEventListener('focus', function () { show(t); });
+      t.addEventListener('blur', function () { leave(t, false); });
+      t.addEventListener('click', function () { leave(t, false); });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && current) leave(current, false);
+    });
+  }
+
   function boot() {
     qa(document, '[data-pb]').forEach(init);
+    initHints();
   }
 
   if (document.readyState === 'loading') {
