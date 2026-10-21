@@ -36,6 +36,15 @@
  *                                             also gets .is-closing, so the exit can
  *                                             take a different path than the entrance
  *   Escape and a click outside the example close it and return focus.
+ *   [data-pb-autoclose="2000"] on the panel  optional; closes itself after that
+ *                                             many ms. A panel with role="status"
+ *                                             is a toast, so its trigger gets no
+ *                                             aria-expanded
+ *   [data-pb-focus-manage] on the component  focus management example: in the
+ *                                             before state focus stays put and is
+ *                                             not returned; in the after state it
+ *                                             moves in, Tab is trapped in the panel
+ *                                             and the panel's siblings are inert
  *
  * Keyframes vs transitions (example 39), on the component:
  *   data-pb-keyframes="translateX(0)|translateX(10rem)|500"
@@ -86,6 +95,31 @@
  *                                             seen and announced. Clears after
  *                                             ANNOUNCE_HOLD, or on Escape.
  *
+ * Loading ("Keep the label while loading")
+ *   button[data-pb-load="80"]                 fakes a reply after that many ms;
+ *                                             gets .is-loading and aria-busy
+ *     [data-pb-load-part]                     label and spinner slot, also get
+ *                                             .is-loading
+ *   Before: the indicator shows at once and replaces the label. After: it waits
+ *   LOAD_SHOW_DELAY, then stays at least LOAD_MIN_VISIBLE, beside the label.
+ *
+ * Submenu ("Forgiving submenus")
+ *   button[data-pb-menu-item]                 gets .is-active; with aria-controls
+ *                                             it owns a submenu and gets
+ *                                             aria-expanded
+ *   [data-pb-submenu]                         gets .is-open
+ *   polygon[data-pb-cone]                     optional; draws the safe triangle
+ *   Before: hovering an item switches at once. After: while the pointer heads
+ *   for the open submenu, other items wait AIM_GRACE before taking over.
+ *   ArrowRight opens and enters a submenu, ArrowLeft and Escape come back.
+ *
+ * Reorder ("Gestures have alternatives")
+ *   [data-pb-reorder]                         the list; gets .is-dragging
+ *     [data-pb-row="Name"]                    a row; gets .is-dragging
+ *       [data-pb-handle]                      drag handle, works in both states
+ *       button[data-pb-move="up" | "down"]    the alternative, after state only
+ *   [data-pb-reorder-status]                  role="status"; announces moves
+ *
  * Reduced motion ("Respect people's reduced motion setting"), on the component:
  *   data-pb-follows="reduced-motion"
  *   The switch starts in the after state when the OS asks for reduced motion,
@@ -116,6 +150,9 @@
   var ANCHOR_GAP = 8; // px between an anchored panel and its trigger
   var TIP_WARM = 300; // ms after a tooltip closes that its neighbors stay warm
   var ANNOUNCE_HOLD = 2000; // ms the "Link copied" status stays up
+  var LOAD_SHOW_DELAY = 200; // ms before a loading indicator appears at all
+  var LOAD_MIN_VISIBLE = 400; // ms an indicator stays once it has appeared
+  var AIM_GRACE = 300; // ms a submenu waits for the pointer to arrive
 
   // Tooltip delays come from motion.css so the demo matches the token.
   function tokenMs(name, fallback) {
@@ -220,6 +257,31 @@
     var lastTrigger = triggers[0];
     var closeTimers = [];
     var kf = parseKeyframes(root);
+    // Focus management example: in the before state nothing moves focus.
+    var manage = root.hasAttribute('data-pb-focus-manage');
+    // A toast is a status message, not something its button expands.
+    var isStatus = panels[0].getAttribute('role') === 'status';
+    var autoclose = parseInt(panels[0].getAttribute('data-pb-autoclose'), 10) || 0;
+    var autoTimer = null;
+    var managed = function () { return !manage || isAfter(); };
+
+    // Everything beside the panel goes inert while a managed dialog is open,
+    // so a click or a screen reader cannot reach the page behind it.
+    function setInert(on) {
+      if (!manage) return;
+      panels.forEach(function (panel) {
+        qa(panel.parentElement, ':scope > *').forEach(function (el) {
+          if (el === panel) return;
+          if (on) el.setAttribute('inert', '');
+          else el.removeAttribute('inert');
+        });
+      });
+    }
+
+    function focusables(el) {
+      return qa(el, 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])')
+        .filter(function (f) { return f.getClientRects().length; });
+    }
 
     function runKeyframes(opening) {
       if (!kf || isAfter() || reducedMotion()) return;
@@ -282,20 +344,23 @@
       });
       triggers.forEach(function (t) {
         var on = open && (triggers.length === 1 || t === lastTrigger);
-        t.setAttribute('aria-expanded', String(on));
+        if (!isStatus) t.setAttribute('aria-expanded', String(on));
         t.classList.toggle('is-open', on);
       });
+      clearTimeout(autoTimer);
+      if (open && autoclose) autoTimer = setTimeout(function () { set(false, false); }, autoclose);
+      setInert(open && manage && isAfter());
       if (open) {
         var focusIn = q(root, '[data-pb-panel] [data-pb-close], [data-pb-panel] [data-pb-focus]');
-        if (focusIn) focusIn.focus();
-      } else if (returnFocus && lastTrigger) {
+        if (focusIn && managed()) focusIn.focus();
+      } else if (returnFocus && lastTrigger && managed()) {
         lastTrigger.focus();
       }
       onChange();
     }
 
     triggers.forEach(function (t) {
-      t.setAttribute('aria-expanded', 'false');
+      if (!isStatus) t.setAttribute('aria-expanded', 'false');
       t.addEventListener('click', function () {
         // A different trigger while open: reopen from that trigger.
         if (open && t !== lastTrigger) snapClosed();
@@ -309,6 +374,21 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && open) set(false, true);
     });
+    // Managed dialogs keep Tab and Shift+Tab inside the panel.
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab' || !open || !manage || !isAfter()) return;
+      var f = focusables(panels[0]);
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      var inside = panels[0].contains(document.activeElement);
+      if (!inside || (e.shiftKey && document.activeElement === first)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
     document.addEventListener('click', function (e) {
       if (open && !root.contains(e.target)) set(false, false);
     });
@@ -318,12 +398,14 @@
 
     return function reset() {
       closeTimers.forEach(clearTimeout);
+      clearTimeout(autoTimer);
+      setInert(false);
       panels.forEach(function (el) {
         if (el.getAnimations) el.getAnimations().forEach(function (a) { a.cancel(); });
         el.classList.remove('is-open', 'is-closing');
       });
       triggers.forEach(function (t) {
-        t.setAttribute('aria-expanded', 'false');
+        if (!isStatus) t.setAttribute('aria-expanded', 'false');
         t.classList.remove('is-open');
       });
       open = false;
@@ -583,6 +665,240 @@
     });
   }
 
+  /* ---- Loading ("Keep the label while loading") ---------------------- */
+
+  function initLoading(root, isAfter) {
+    var buttons = qa(root, '[data-pb-load]');
+    if (!buttons.length) return null;
+    var timers = [];
+
+    // The button and the parts inside it all carry the state, because the
+    // Designer can only style an element by its own classes.
+    function parts(btn) { return [btn].concat(qa(btn, '[data-pb-load-part]')); }
+    function show(btn, on) {
+      parts(btn).forEach(function (el) { el.classList.toggle('is-loading', on); });
+      btn.setAttribute('aria-busy', String(on));
+    }
+
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.getAttribute('aria-busy') === 'true' || btn.hasAttribute('data-pb-pending')) return;
+        var response = parseInt(btn.getAttribute('data-pb-load'), 10) || 1000;
+        if (!isAfter()) {
+          // Before: the spinner replaces the label at once, however fast the reply.
+          show(btn, true);
+          timers.push(setTimeout(function () { show(btn, false); }, response));
+          return;
+        }
+        // After: wait before showing anything, then keep it up long enough to read.
+        btn.setAttribute('data-pb-pending', '');
+        var shownAt = 0;
+        var showTimer = setTimeout(function () {
+          shownAt = Date.now();
+          show(btn, true);
+        }, LOAD_SHOW_DELAY);
+        timers.push(showTimer);
+        timers.push(setTimeout(function () {
+          clearTimeout(showTimer);
+          var wait = shownAt ? Math.max(0, LOAD_MIN_VISIBLE - (Date.now() - shownAt)) : 0;
+          timers.push(setTimeout(function () {
+            show(btn, false);
+            btn.removeAttribute('data-pb-pending');
+          }, wait));
+        }, response));
+      });
+    });
+
+    return function reset() {
+      timers.forEach(clearTimeout);
+      timers = [];
+      buttons.forEach(function (btn) { show(btn, false); btn.removeAttribute('data-pb-pending'); });
+    };
+  }
+
+  /* ---- Submenu ("Forgiving submenus") -------------------------------- */
+
+  function initSubmenu(root, isAfter) {
+    var items = qa(root, '[data-pb-menu-item]');
+    if (!items.length) return null;
+    var cone = q(root, '[data-pb-cone]');
+    var active = null;
+    var pending = null;
+    var last = null; // pointer position before the current one
+
+    function subOf(item) {
+      var id = item.getAttribute('aria-controls');
+      return id ? document.getElementById(id) : null;
+    }
+
+    function activate(item) {
+      clearTimeout(pending);
+      if (active === item) return;
+      items.forEach(function (i) {
+        var on = i === item;
+        i.classList.toggle('is-active', on);
+        var sub = subOf(i);
+        if (sub) {
+          sub.classList.toggle('is-open', on);
+          i.setAttribute('aria-expanded', String(on));
+        }
+      });
+      active = item;
+      drawCone(null);
+    }
+
+    // The safe triangle: from where the pointer was to the two near corners
+    // of the open submenu.
+    function inCone(p, a, b, c) {
+      function side(p1, p2, p3) { return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y); }
+      var d1 = side(p, a, b), d2 = side(p, b, c), d3 = side(p, c, a);
+      var neg = d1 < 0 || d2 < 0 || d3 < 0, pos = d1 > 0 || d2 > 0 || d3 > 0;
+      return !(neg && pos);
+    }
+
+    function coneFor(sub) {
+      var r = sub.getBoundingClientRect();
+      return [last, { x: r.left, y: r.top }, { x: r.left, y: r.bottom }];
+    }
+
+    function drawCone(points) {
+      if (!cone) return;
+      if (!points || !isAfter()) { cone.setAttribute('points', ''); return; }
+      var box = cone.ownerSVGElement.getBoundingClientRect();
+      cone.setAttribute('points', points.map(function (pt) {
+        return (pt.x - box.left) + ',' + (pt.y - box.top);
+      }).join(' '));
+    }
+
+    root.addEventListener('pointermove', function (e) {
+      var now = { x: e.clientX, y: e.clientY };
+      var sub = active && subOf(active);
+      if (sub && last && isAfter()) drawCone(coneFor(sub));
+      last = now;
+    });
+
+    items.forEach(function (item) {
+      item.addEventListener('pointerenter', function (e) {
+        var sub = active && subOf(active);
+        var here = { x: e.clientX, y: e.clientY };
+        // After: heading for the open submenu, so give the pointer time to
+        // arrive before switching items.
+        if (isAfter() && sub && sub.classList.contains('is-open') && last && inCone.apply(null, [here].concat(coneFor(sub)))) {
+          clearTimeout(pending);
+          pending = setTimeout(function () { activate(item); }, AIM_GRACE);
+          return;
+        }
+        activate(item);
+      });
+      item.addEventListener('click', function () { activate(item); });
+      item.addEventListener('keydown', function (e) {
+        var sub = subOf(item);
+        if (e.key === 'ArrowRight' && sub) {
+          e.preventDefault();
+          activate(item);
+          var first = q(sub, 'button');
+          if (first) first.focus();
+        }
+      });
+    });
+
+    // Entering the submenu cancels any pending switch.
+    qa(root, '[data-pb-submenu]').forEach(function (sub) {
+      sub.addEventListener('pointerenter', function () { clearTimeout(pending); });
+      sub.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowLeft' && e.key !== 'Escape') return;
+        e.preventDefault();
+        var owner = items.filter(function (i) { return subOf(i) === sub; })[0];
+        if (owner) owner.focus();
+      });
+    });
+
+    return function reset() {
+      clearTimeout(pending);
+      active = null;
+      activate(items[0]);
+    };
+  }
+
+  /* ---- Reorder ("Gestures have alternatives") ------------------------ */
+
+  function initReorder(root, isAfter) {
+    var list = q(root, '[data-pb-reorder]');
+    if (!list) return null;
+    var live = q(root, '[data-pb-reorder-status]');
+    var dragging = null;
+
+    function rows() { return qa(list, '[data-pb-row]'); }
+    function name(row) { return row.getAttribute('data-pb-row'); }
+
+    function announce(row) {
+      if (!live) return;
+      var i = rows().indexOf(row);
+      live.textContent = name(row) + ', position ' + (i + 1) + ' of ' + rows().length;
+    }
+
+    function move(row, d) {
+      var all = rows();
+      var i = all.indexOf(row);
+      var j = i + d;
+      if (j < 0 || j >= all.length) return;
+      if (d < 0) list.insertBefore(row, all[j]);
+      else list.insertBefore(row, all[j].nextSibling);
+      announce(row);
+    }
+
+    // Move buttons: the alternative to dragging. Focus stays on the button
+    // that was pressed so it can be pressed again.
+    list.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-pb-move]');
+      if (!b || !isAfter()) return;
+      var row = b.closest('[data-pb-row]');
+      move(row, b.getAttribute('data-pb-move') === 'up' ? -1 : 1);
+      b.focus();
+    });
+
+    // Drag by the handle in both states. Selection is off and the other rows
+    // are inert while dragging, so nothing highlights or hovers underneath.
+    list.addEventListener('pointerdown', function (e) {
+      var handle = e.target.closest('[data-pb-handle]');
+      if (!handle) return;
+      e.preventDefault();
+      dragging = handle.closest('[data-pb-row]');
+      dragging.classList.add('is-dragging');
+      list.classList.add('is-dragging');
+      rows().forEach(function (r) { if (r !== dragging) r.setAttribute('inert', ''); });
+      handle.setPointerCapture(e.pointerId);
+    });
+    list.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var over = rows().filter(function (r) {
+        var rect = r.getBoundingClientRect();
+        return r !== dragging && e.clientY > rect.top && e.clientY < rect.bottom;
+      })[0];
+      if (!over) return;
+      var rect = over.getBoundingClientRect();
+      var below = e.clientY > rect.top + rect.height / 2;
+      list.insertBefore(dragging, below ? over.nextSibling : over);
+    });
+    function drop() {
+      if (!dragging) return;
+      dragging.classList.remove('is-dragging');
+      list.classList.remove('is-dragging');
+      rows().forEach(function (r) { r.removeAttribute('inert'); });
+      announce(dragging);
+      dragging = null;
+    }
+    list.addEventListener('pointerup', drop);
+    list.addEventListener('pointercancel', drop);
+
+    var original = rows();
+    return function reset() {
+      drop();
+      original.forEach(function (r) { list.appendChild(r); });
+      if (live) live.textContent = '';
+    };
+  }
+
   /* ---- Example ------------------------------------------------------- */
 
   function init(root) {
@@ -598,7 +914,10 @@
       initOpen(root, isAfter, onChange),
       initSwap(root, onChange),
       initTips(root, isAfter),
-      root.getAttribute('data-pb') === 'confirm' ? initConfirm(root, isAfter) : null
+      root.getAttribute('data-pb') === 'confirm' ? initConfirm(root, isAfter) : null,
+      initLoading(root, isAfter),
+      initSubmenu(root, isAfter),
+      initReorder(root, isAfter)
     ].forEach(function (r) { if (r) resets.push(r); });
     initTabs(root);
     if (root.getAttribute('data-pb') === 'announce') initAnnounce(root);
