@@ -53,7 +53,7 @@ body::-webkit-scrollbar {
 /* Focus state for keyboard navigation */
 *[tabindex]:focus-visible,
 input[type="file"]:focus-visible {
-  outline: 0.125rem solid #4d65ff;
+  outline: 0.125rem solid var(--border--focus, #05060f);
   outline-offset: 0.125rem;
 }
 

@@ -148,6 +148,6 @@
  * capsule the image draws and read as a detached rectangle.
  */
 .hero-skill_panel:focus-visible {
-  outline: 2px solid var(--border--accent, #4ca077);
+  outline: 2px solid var(--border--focus, #05060f);
   outline-offset: -2px;
 }
