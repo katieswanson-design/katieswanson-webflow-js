@@ -278,6 +278,16 @@
       });
     }
 
+    // A panel that fades in is still visibility: hidden on the frame it opens,
+    // and a hidden element refuses focus. Try again for a few frames.
+    function focusWhenReady(el) {
+      var tries = 0;
+      (function attempt() {
+        el.focus();
+        if (document.activeElement !== el && open && tries++ < 20) requestAnimationFrame(attempt);
+      })();
+    }
+
     function focusables(el) {
       return qa(el, 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])')
         .filter(function (f) { return f.getClientRects().length; });
@@ -352,7 +362,7 @@
       setInert(open && manage && isAfter());
       if (open) {
         var focusIn = q(root, '[data-pb-panel] [data-pb-close], [data-pb-panel] [data-pb-focus]');
-        if (focusIn && managed()) focusIn.focus();
+        if (focusIn && managed()) focusWhenReady(focusIn);
       } else if (returnFocus && lastTrigger && managed()) {
         lastTrigger.focus();
       }
