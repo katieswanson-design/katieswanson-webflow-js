@@ -7,10 +7,14 @@
  *   data-elevation="low" | "medium" | "high" | "highest"
  *
  * Every level is two layers, a larger soft one and a tighter one, per the
- * "Layered shadows" guideline. The colours are Webflow variables in the color
- * collection, so dark mode comes from the Designer like every other token:
+ * "Layered shadows" guideline. low and medium are for cards and things that
+ * sit on the page; high and highest are for surfaces that float over it.
+ *
+ * The colours are Webflow variables in the color collection, so dark mode
+ * comes from the Designer like every other token:
  *   shadow/default  brand/navy/alpha/8 (light), black-alpha/20 (dark)
  *   shadow/subtle   brand/navy/alpha/4 (light), black-alpha/12 (dark)
+ *   shadow/strong   brand/navy/alpha/16 (light), black-alpha/20 (dark)
  * Navy rather than black so shadows lean toward the brand hue ("Hue
  * consistency"). The fallbacks are the light values.
  *
@@ -45,16 +49,20 @@
     0 2px 4px -1px var(--shadow--subtle, oklch(20.6% 0.032 254.945 / 0.04));
 }
 
+/* Floating surfaces (popovers, menus, dialogs) sit over content rather than
+   beside it, so their larger layer uses shadow/strong and their tighter one
+   shadow/default. */
+
 [data-elevation="high"] {
   box-shadow:
-    0 10px 15px -3px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08)),
-    0 4px 6px -2px var(--shadow--subtle, oklch(20.6% 0.032 254.945 / 0.04));
+    0 10px 15px -3px var(--shadow--strong, oklch(20.6% 0.032 254.945 / 0.16)),
+    0 4px 6px -2px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08));
 }
 
 [data-elevation="highest"] {
   box-shadow:
-    0 20px 25px -5px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08)),
-    0 10px 10px -5px var(--shadow--subtle, oklch(20.6% 0.032 254.945 / 0.04));
+    0 20px 25px -5px var(--shadow--strong, oklch(20.6% 0.032 254.945 / 0.16)),
+    0 10px 10px -5px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08));
 }
 
 :where([data-elevation]) {
