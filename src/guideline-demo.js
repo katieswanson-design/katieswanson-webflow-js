@@ -74,6 +74,23 @@
  *   [data-pb-confirm-result]                  "Project deleted.", tabindex="-1"
  *   Before: the trigger deletes immediately. After: it opens the dialog.
  *
+ * Announce ("Announce async updates"), data-pb="announce", no switch
+ *   button[data-pb-announce="Link copied"]    copies the example's link
+ *     [data-pb-swap-target]                   icons, get .is-after (always crossfade)
+ *                                             and .is-swapped while copied
+ *   [data-pb-live]                            role="status" tooltip, rendered but
+ *                                             empty until a copy; gets the message
+ *                                             and .is-visible, so the same text is
+ *                                             seen and announced. Clears after
+ *                                             ANNOUNCE_HOLD, or on Escape.
+ *
+ * Reduced motion ("Respect people's reduced motion setting"), on the component:
+ *   data-pb-follows="reduced-motion"
+ *   The switch starts in the after state when the OS asks for reduced motion,
+ *   and the component gets data-motion="default" | "reduce" for the CSS in
+ *   guideline-demo.css to key off. A mode change leaves open panels as they
+ *   are, so the next open or close picks up the new motion without a jump.
+ *
  * Page hints (WCAG links in the example headers), outside the mode toggle
  *   a[data-pb-hint]                           trigger, keeps its own aria-label
  *     [data-pb-hint-tooltip]                  aria-hidden; gets .is-visible, and
@@ -96,6 +113,7 @@
   var SLOW_RATE = 0.25;
   var ANCHOR_GAP = 8; // px between an anchored panel and its trigger
   var TIP_WARM = 300; // ms after a tooltip closes that its neighbors stay warm
+  var ANNOUNCE_HOLD = 2000; // ms the "Link copied" status stays up
 
   // Tooltip delays come from motion.css so the demo matches the token.
   function tokenMs(name, fallback) {
@@ -502,12 +520,62 @@
     };
   }
 
+  /* ---- Announce ("Announce async updates") --------------------------- */
+
+  function initAnnounce(root) {
+    var btn = q(root, '[data-pb-announce]');
+    var live = q(root, '[data-pb-live]');
+    if (!btn || !live) return;
+    var icons = qa(root, '[data-pb-swap-target]');
+    var timers = [];
+
+    // No switch here: the icons always use the crossfade from "Animate icon
+    // state changes smoothly".
+    icons.forEach(function (el) { el.classList.add('is-after'); });
+
+    function clear() {
+      timers.forEach(clearTimeout);
+      timers = [];
+    }
+
+    function hide() {
+      clear();
+      icons.forEach(function (el) { el.classList.remove('is-swapped'); });
+      live.classList.remove('is-visible');
+      // Empty the region once the tooltip has faded, so the next copy is a
+      // fresh change that screen readers announce again.
+      timers.push(setTimeout(function () { live.textContent = ''; }, tokenMs('--_motion---duration--xs', 150)));
+    }
+
+    btn.addEventListener('click', function () {
+      clear();
+      var link = location.href.split('#')[0] + (root.id ? '#' + root.id : '');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).catch(function () {});
+      }
+      icons.forEach(function (el) { el.classList.add('is-swapped'); });
+      live.textContent = '';
+      // A change to an existing live region is what gets announced, so the
+      // message goes in a beat after the region is emptied.
+      timers.push(setTimeout(function () {
+        live.textContent = btn.getAttribute('data-pb-announce');
+        live.classList.add('is-visible');
+      }, 50));
+      timers.push(setTimeout(hide, ANNOUNCE_HOLD));
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && live.classList.contains('is-visible')) hide();
+    });
+  }
+
   /* ---- Example ------------------------------------------------------- */
 
   function init(root) {
     var after = false;
     var sw = q(root, '[data-pb-switch]');
     var isAfter = function () { return after; };
+    var followsMotion = root.getAttribute('data-pb-follows') === 'reduced-motion';
     var onChange = initSlow(root);
     var resets = [];
     var replay = initReplay(root, onChange);
@@ -519,10 +587,12 @@
       root.getAttribute('data-pb') === 'confirm' ? initConfirm(root, isAfter) : null
     ].forEach(function (r) { if (r) resets.push(r); });
     initTabs(root);
+    if (root.getAttribute('data-pb') === 'announce') initAnnounce(root);
 
     function setMode(a, user) {
       after = a;
       root.setAttribute('data-pb-mode', a ? 'after' : 'before');
+      if (followsMotion) root.setAttribute('data-motion', a ? 'reduce' : 'default');
       if (sw) {
         sw.setAttribute('aria-checked', String(a));
         qa(sw, 'span').forEach(function (el) { el.classList.toggle('is-on', a); });
@@ -534,7 +604,7 @@
       qa(root, '[data-pb-target]').forEach(function (el) {
         el.classList.toggle('is-after', a);
       });
-      resets.forEach(function (r) { r(); });
+      if (!followsMotion) resets.forEach(function (r) { r(); });
       if (user && replay) replay();
       onChange();
     }
@@ -550,7 +620,7 @@
       });
     });
 
-    setMode(false, false);
+    setMode(followsMotion && reducedMotion(), false);
   }
 
   /* ---- Page hints (WCAG links) ---------------------------------------- */
