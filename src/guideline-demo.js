@@ -76,6 +76,8 @@
  *
  * Announce ("Announce async updates"), data-pb="announce", no switch
  *   button[data-pb-announce="Link copied"]    copies the example's link
+ *     [data-pb-speak]                         optional; also speaks the message
+ *                                             aloud with the Web Speech API
  *     [data-pb-swap-target]                   icons, get .is-after (always crossfade)
  *                                             and .is-swapped while copied
  *   [data-pb-live]                            role="status" tooltip, rendered but
@@ -538,6 +540,16 @@
       timers = [];
     }
 
+    // So people without a screen reader hear what one would say. Opt-in per
+    // button; a screen reader user will hear the message twice.
+    function speak(text) {
+      if (!btn.hasAttribute('data-pb-speak') || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      var utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = document.documentElement.lang || 'en';
+      window.speechSynthesis.speak(utterance);
+    }
+
     function hide() {
       clear();
       icons.forEach(function (el) { el.classList.remove('is-swapped'); });
@@ -557,10 +569,12 @@
       live.textContent = '';
       // A change to an existing live region is what gets announced, so the
       // message goes in a beat after the region is emptied.
+      var message = btn.getAttribute('data-pb-announce');
       timers.push(setTimeout(function () {
-        live.textContent = btn.getAttribute('data-pb-announce');
+        live.textContent = message;
         live.classList.add('is-visible');
       }, 50));
+      speak(message);
       timers.push(setTimeout(hide, ANNOUNCE_HOLD));
     });
 
