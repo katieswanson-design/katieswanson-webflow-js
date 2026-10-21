@@ -6,8 +6,9 @@
  * Loaded on /guidelines only, after motion.css.
  */
 
-/* Example 11: two-line clamp. Webflow rejects -webkit-box-orient and drops
-   -webkit-line-clamp, so the after state lives here. */
+/* "Design for very long content": two-line clamp. Webflow rejects
+   -webkit-box-orient and drops -webkit-line-clamp, so the after state lives
+   here. */
 .guideline-demo_card-title.is-after {
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -26,4 +27,15 @@
 
 @media (prefers-reduced-motion: reduce) {
   .guideline-demo_spinner { animation-duration: 2.4s; }
+}
+
+/* "Layer shadows for natural depth": the after state is the high elevation
+   level, on the shadow tokens so it follows dark mode. Webflow turns var()
+   inside a class box-shadow into a single colour binding, so it lives here.
+   The Designer combo keeps the light values as a fallback; this rule wins
+   because it loads after Webflow's CSS at the same specificity. */
+.guideline-demo_elevation-card.is-after {
+  box-shadow:
+    0 10px 15px -3px var(--shadow--strong, oklch(20.6% 0.032 254.945 / 0.16)),
+    0 4px 6px -2px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08));
 }
