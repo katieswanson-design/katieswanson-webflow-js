@@ -50,8 +50,9 @@
  *   button[data-pb-tip]                       trigger, has aria-describedby
  *     [data-pb-tooltip]                       gets .is-visible, and .is-instant
  *                                             when it opens without a delay
- *   Before: every tooltip waits 600ms. After: once one tooltip has opened,
- *   moving to a neighbor within 300ms opens the next one immediately.
+ *   Before: every tooltip waits --_motion---delay--tooltip (500ms). After:
+ *   once one tooltip has opened, moving to a neighbor within 300ms opens it
+ *   after --_motion---delay--tooltip-warm (0ms) instead.
  *
  * Slow motion (examples 24, 47)
  *   button[data-pb-slow]                      gets aria-pressed; plays every
@@ -76,8 +77,15 @@
   'use strict';
 
   var SLOW_RATE = 0.25;
-  var TIP_DELAY = 600;
-  var TIP_WARM = 300;
+  var TIP_WARM = 300; // ms after a tooltip closes that its neighbors stay warm
+
+  // Tooltip delays come from motion.css so the demo matches the token.
+  function tokenMs(name, fallback) {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+    var n = parseFloat(v);
+    if (isNaN(n)) return fallback;
+    return /ms\s*$/.test(v) ? n : n * 1000;
+  }
 
   function qa(root, sel) {
     return Array.prototype.slice.call(root.querySelectorAll(sel));
@@ -132,8 +140,14 @@
     function play() {
       timers.forEach(clearTimeout);
       timers = [];
-      items.forEach(function (el) { el.classList.remove('is-played'); });
-      void root.offsetWidth; // commit the start state before playing again
+      // Snap back to the start state without animating the reset, so the
+      // entrance always plays from the beginning.
+      items.forEach(function (el) {
+        el.style.transition = 'none';
+        el.classList.remove('is-played');
+      });
+      void root.offsetWidth;
+      items.forEach(function (el) { el.style.transition = ''; });
       requestAnimationFrame(function () {
         items.forEach(function (el) {
           var delay = parseInt(el.getAttribute('data-pb-delay'), 10) || 0;
@@ -318,6 +332,8 @@
   function initTips(root, isAfter) {
     var tips = qa(root, '[data-pb-tip]');
     if (!tips.length) return null;
+    var delay = tokenMs('--_motion---delay--tooltip', 500);
+    var warmDelay = tokenMs('--_motion---delay--tooltip-warm', 0);
     var showTimer = null;
     var lastHide = 0;
     var current = null;
@@ -340,14 +356,10 @@
       var tip = tipOf(t);
       if (!tip) return;
       current = t;
-      if (warm) {
-        tip.classList.add('is-instant', 'is-visible');
-      } else {
-        tip.classList.remove('is-instant');
-        showTimer = setTimeout(function () {
-          if (current === t) tip.classList.add('is-visible');
-        }, TIP_DELAY);
-      }
+      tip.classList.toggle('is-instant', warm);
+      showTimer = setTimeout(function () {
+        if (current === t) tip.classList.add('is-visible');
+      }, warm ? warmDelay : delay);
     }
 
     tips.forEach(function (t) {
