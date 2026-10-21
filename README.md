@@ -17,6 +17,8 @@ fly, so the source stays readable here and ships small.
 | `src/copy-email.js` | Copies an email to the clipboard and flips the button into a copied state. No dependencies. | Site-wide |
 | `src/copy-email.css` | Hover, focus and copied states for that button. | Site-wide |
 | `src/expanding-panels.css` | Expand-on-hover/focus behaviour for the hero panel row. No JS. | `/new-home` hero |
+| `src/guideline-demo.js` | Interactive guideline examples: before/after switch, replay, open and close, swap, tabs, tooltip warm-up, slow motion, and the delete confirmation for example 34. Toggles Designer combo classes only. No dependencies. | `/guidelines` |
+| `src/guideline-demo.css` | The few guideline example rules Webflow cannot express: the two-line clamp (example 11) and the spinner keyframes (example 14). | `/guidelines` |
 | `src/hover-peek.js` | Cursor-following image preview for the article list. No dependencies. | Site-wide |
 | `src/hover-peek.css` | State transitions, input-mode and reduced-motion variants for that preview. | Site-wide |
 | `src/disclosure-a11y.js` | Removes the `aria-haspopup="menu"` Webflow's JS adds to Dropdown toggles used as accordions. Opt-in via `[data-disclosure]`; no-ops where that attribute is absent. No dependencies. | Site-wide |

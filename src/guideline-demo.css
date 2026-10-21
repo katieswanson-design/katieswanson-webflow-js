@@ -1,0 +1,29 @@
+/**
+ * guideline-demo.css - the few rules the guideline examples on /guidelines
+ * need that Webflow's style panel cannot express. Everything else lives in
+ * the Designer as guideline-demo_* classes.
+ *
+ * Loaded on /guidelines only, after motion.css.
+ */
+
+/* Example 11: two-line clamp. Webflow rejects -webkit-box-orient and drops
+   -webkit-line-clamp, so the after state lives here. */
+.guideline-demo_card-title.is-after {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Example 14: the loading spinner. Webflow has no @keyframes. */
+@keyframes guideline-demo-spin {
+  to { transform: rotate(360deg); }
+}
+.guideline-demo_spinner {
+  animation: guideline-demo-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guideline-demo_spinner { animation-duration: 2.4s; }
+}
