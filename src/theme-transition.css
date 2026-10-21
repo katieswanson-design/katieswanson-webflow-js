@@ -89,6 +89,8 @@
 @property --border--inverse         { syntax: '<color>'; inherits: true; initial-value: #fcfdfe; }
 @property --border--accent          { syntax: '<color>'; inherits: true; initial-value: #307e5b; }
 @property --border--focus           { syntax: '<color>'; inherits: true; initial-value: #05060f; }
+@property --shadow--default         { syntax: '<color>'; inherits: true; initial-value: oklch(20.6% 0.032 254.945 / 0.08); }
+@property --shadow--subtle          { syntax: '<color>'; inherits: true; initial-value: oklch(20.6% 0.032 254.945 / 0.04); }
 
 /**
  * The tokens are declared on :root and overridden by .u-dark, both of which
@@ -109,7 +111,8 @@
     --text--primary, --text--secondary, --text--tertiary,
     --text--inverse, --text--accent, --text--static-primary,
     --border--subtle, --border--interactive, --border--inverse,
-    --border--accent, --border--focus;
+    --border--accent, --border--focus,
+    --shadow--default, --shadow--subtle;
   transition-duration: 400ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }

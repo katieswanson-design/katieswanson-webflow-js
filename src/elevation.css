@@ -1,0 +1,64 @@
+/**
+ * elevation.css - shadow levels for katieswanson.design.
+ *
+ * Webflow variables have no shadow type, so the layered recipes live here and
+ * are applied with a custom attribute, without touching class names:
+ *
+ *   data-elevation="low" | "medium" | "high" | "highest"
+ *
+ * Every level is two layers, a larger soft one and a tighter one, per the
+ * "Layered shadows" guideline. The colours are Webflow variables in the color
+ * collection, so dark mode comes from the Designer like every other token:
+ *   shadow/default  brand/navy/alpha/8 (light), black-alpha/20 (dark)
+ *   shadow/subtle   brand/navy/alpha/4 (light), black-alpha/12 (dark)
+ * Navy rather than black so shadows lean toward the brand hue ("Hue
+ * consistency"). The fallbacks are the light values.
+ *
+ * The recipes are written on the attribute rules, not as :root tokens, so the
+ * colours resolve on the element. A section that sets its own colour mode
+ * still gets the right shadow.
+ *
+ * The attribute selector loads after Webflow's CSS, so it beats a single
+ * class that also sets box-shadow. Remove box-shadow from the class when an
+ * element moves onto a level.
+ *
+ * The transition is wrapped in :where() so it has no specificity: a class
+ * with its own transition (press scale, for example) keeps it. To animate a
+ * level change on such an element, add box-shadow to that class's
+ * transition-property in the Designer.
+ *
+ * Reduced motion is handled in reset.css.
+ *
+ * Loaded site-wide via a <link> in Site settings > Custom code > Head, after
+ * motion.css.
+ */
+
+[data-elevation="low"] {
+  box-shadow:
+    0 1px 3px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08)),
+    0 1px 2px var(--shadow--subtle, oklch(20.6% 0.032 254.945 / 0.04));
+}
+
+[data-elevation="medium"] {
+  box-shadow:
+    0 4px 6px -1px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08)),
+    0 2px 4px -1px var(--shadow--subtle, oklch(20.6% 0.032 254.945 / 0.04));
+}
+
+[data-elevation="high"] {
+  box-shadow:
+    0 10px 15px -3px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08)),
+    0 4px 6px -2px var(--shadow--subtle, oklch(20.6% 0.032 254.945 / 0.04));
+}
+
+[data-elevation="highest"] {
+  box-shadow:
+    0 20px 25px -5px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08)),
+    0 10px 10px -5px var(--shadow--subtle, oklch(20.6% 0.032 254.945 / 0.04));
+}
+
+:where([data-elevation]) {
+  transition-property: box-shadow;
+  transition-duration: var(--_motion---duration--sm);
+  transition-timing-function: var(--_motion---ease--out);
+}
