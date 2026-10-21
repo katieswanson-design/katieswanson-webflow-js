@@ -389,15 +389,13 @@
       if (e.key !== 'Tab' || !open || !manage || !isAfter()) return;
       var f = focusables(panels[0]);
       if (!f.length) return;
-      var first = f[0], last = f[f.length - 1];
-      var inside = panels[0].contains(document.activeElement);
-      if (!inside || (e.shiftKey && document.activeElement === first)) {
-        e.preventDefault();
-        (e.shiftKey ? last : first).focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
+      // Move focus ourselves on every Tab. Safari leaves buttons out of the
+      // Tab order by default, so relying on the browser lets focus escape.
+      e.preventDefault();
+      var i = f.indexOf(document.activeElement);
+      var next = i === -1 ? (e.shiftKey ? f.length - 1 : 0)
+        : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length;
+      f[next].focus();
     });
     document.addEventListener('click', function (e) {
       if (open && !root.contains(e.target)) set(false, false);
