@@ -22,9 +22,16 @@
  *   The entrance also reruns whenever the mode changes.
  *
  * Open and close (examples 7, 24, 37, 39, 42, 44, 46)
- *   button[data-pb-open]                      toggles; gets aria-expanded, .is-open
+ *   button[data-pb-open]                      toggles; gets aria-expanded, .is-open.
+ *                                             With several triggers, only the one
+ *                                             that opened the panel is expanded
  *   button[data-pb-close]                     closes (for example inside a modal)
  *   [data-pb-panel]                           gets .is-open
+ *   [data-pb-anchor]                          optional; the panel is placed next to
+ *                                             the trigger that opened it (below, or
+ *                                             above when there is no room) and gets
+ *                                             --pb-origin, the trigger's position,
+ *                                             for transform-origin (example 7)
  *   [data-pb-closing="250"]                   optional, ms; while closing the panel
  *                                             also gets .is-closing, so the exit can
  *                                             take a different path than the entrance
@@ -77,6 +84,7 @@
   'use strict';
 
   var SLOW_RATE = 0.25;
+  var ANCHOR_GAP = 8; // px between an anchored panel and its trigger
   var TIP_WARM = 300; // ms after a tooltip closes that its neighbors stay warm
 
   // Tooltip delays come from motion.css so the demo matches the token.
@@ -194,11 +202,44 @@
       });
     }
 
+    // Anchored panels sit next to whichever trigger opened them, and expose
+    // that trigger's position as --pb-origin for transform-origin.
+    function place(el) {
+      if (!el.hasAttribute('data-pb-anchor') || !lastTrigger) return;
+      var parent = el.offsetParent || root;
+      var pr = parent.getBoundingClientRect();
+      var tr = lastTrigger.getBoundingClientRect();
+      var w = el.offsetWidth, h = el.offsetHeight, gap = ANCHOR_GAP;
+      var cx = tr.left + tr.width / 2 - pr.left;
+      var third = pr.width / 3;
+      var left = cx < third ? tr.left - pr.left
+        : cx > third * 2 ? tr.right - pr.left - w
+        : cx - w / 2;
+      left = Math.max(gap, Math.min(left, pr.width - w - gap));
+      var below = tr.bottom - pr.top + gap + h <= pr.height;
+      var top = below ? tr.bottom - pr.top + gap : tr.top - pr.top - gap - h;
+      var ox = Math.max(0, Math.min(cx - left, w));
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.setProperty('--pb-origin', ox + 'px ' + (below ? '0px' : h + 'px'));
+    }
+
+    function snapClosed() {
+      panels.forEach(function (el) {
+        el.style.transition = 'none';
+        el.classList.remove('is-open', 'is-closing');
+      });
+      void root.offsetWidth;
+      panels.forEach(function (el) { el.style.transition = ''; });
+      open = false;
+    }
+
     function set(next, returnFocus) {
       if (next === open) return;
       open = next;
       closeTimers.forEach(clearTimeout);
       closeTimers = [];
+      if (open) panels.forEach(place);
       runKeyframes(open);
       panels.forEach(function (el) {
         el.classList.toggle('is-open', open);
@@ -210,8 +251,9 @@
         }
       });
       triggers.forEach(function (t) {
-        t.setAttribute('aria-expanded', String(open));
-        t.classList.toggle('is-open', open);
+        var on = open && (triggers.length === 1 || t === lastTrigger);
+        t.setAttribute('aria-expanded', String(on));
+        t.classList.toggle('is-open', on);
       });
       if (open) {
         var focusIn = q(root, '[data-pb-panel] [data-pb-close], [data-pb-panel] [data-pb-focus]');
@@ -225,6 +267,8 @@
     triggers.forEach(function (t) {
       t.setAttribute('aria-expanded', 'false');
       t.addEventListener('click', function () {
+        // A different trigger while open: reopen from that trigger.
+        if (open && t !== lastTrigger) snapClosed();
         lastTrigger = t;
         set(!open, false);
       });
@@ -237,6 +281,9 @@
     });
     document.addEventListener('click', function (e) {
       if (open && !root.contains(e.target)) set(false, false);
+    });
+    window.addEventListener('resize', function () {
+      if (open) panels.forEach(place);
     });
 
     return function reset() {
