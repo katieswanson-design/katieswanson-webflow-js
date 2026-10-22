@@ -136,6 +136,9 @@
  *   300ms of the last one opens at --_motion---delay--tooltip-warm. Hints stay
  *   open while the pointer moves onto them (a short grace covers the gap) and
  *   Escape dismisses them (WCAG 1.4.13).
+ *   [data-pb-hint][data-pb-hint-overflow]     optional; only shows its hint
+ *                                             while the trigger's first child
+ *                                             is clipped (a clamped title)
  * ---------------------------------------------------------------------------
  *
  * Motion values come from motion.css tokens set in the Designer. Reduced
@@ -980,6 +983,12 @@
 
     function tipOf(t) { return q(t, '[data-pb-hint-tooltip]'); }
 
+    // An overflow hint only earns its place when the text is actually cut off.
+    function clipped(t) {
+      var el = q(t, ':scope > :not([data-pb-hint-tooltip])');
+      return !!el && (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1);
+    }
+
     function hide(t) {
       var tip = tipOf(t);
       if (tip && tip.classList.contains('is-visible')) {
@@ -993,6 +1002,7 @@
       clearTimeout(showTimer);
       clearTimeout(hideTimer);
       if (current === t) return;
+      if (t.hasAttribute('data-pb-hint-overflow') && !clipped(t)) return;
       var warm = current !== null || Date.now() - lastHide < TIP_WARM;
       if (current) hide(current);
       var tip = tipOf(t);
