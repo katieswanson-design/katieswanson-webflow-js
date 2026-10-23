@@ -53,6 +53,24 @@
     0 4px 6px -2px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08));
 }
 
+/* "Tint borders, shadows and text toward the surface": the card's edge is an
+   inset shadow too, neutral before and navy-tinted after. The drop shadows
+   match the Designer combo values, repeated because a box-shadow declaration
+   replaces the whole list. */
+.guideline-demo_hue-card {
+  box-shadow:
+    inset 0 0 0 1px var(--_primitives-color---neutral--400, oklch(76.6% 0.011 261.784)),
+    0 10px 15px -3px rgba(0, 0, 0, 0.16),
+    0 4px 6px -2px rgba(0, 0, 0, 0.08);
+}
+
+.guideline-demo_hue-card.is-after {
+  box-shadow:
+    inset 0 0 0 1px var(--_primitives-color---brand--navy--300, oklch(76% 0.051 255.933)),
+    0 10px 15px -3px rgba(31, 51, 78, 0.24),
+    0 4px 6px -2px rgba(31, 51, 78, 0.12);
+}
+
 /* "Respect people's reduced motion setting": the Select menu and its chevron.
    guideline-demo.js puts data-motion="default" | "reduce" on the component and
    starts it on "reduce" when the OS asks for reduced motion. Default motion
