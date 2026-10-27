@@ -148,7 +148,7 @@
    Designer classes.
 
    The card is always laid out at full size. clip-path cuts it down to the
-   pin (its bottom-left 3rem, square corner on the anchor) and opens to the
+   pin (its bottom-left 2rem, square corner on the anchor) and opens to the
    whole card; clip-path also clips hit-testing, so only the pin is hoverable
    at rest. The avatar's top is a percentage of the card, so it rides from the
    pin to the corner without knowing the card's height.
@@ -174,12 +174,12 @@
 }
 
 .guideline-demo_comment-card {
-  clip-path: inset(calc(100% - 3rem) calc(100% - 3rem) 0 0 round 1.5rem 1.5rem 1.5rem 0);
+  clip-path: inset(calc(100% - 2rem) calc(100% - 2rem) 0 0 round 1rem 1rem 1rem 0);
 }
 
 .guideline-demo_comment-avatar {
-  top: calc(100% - 2.75rem);
-  left: 0.25rem;
+  top: calc(100% - 1.8125rem);
+  left: 0.1875rem;
 }
 
 .guideline-demo_comment-body {
@@ -188,12 +188,12 @@
 }
 
 .guideline-demo_comment:is(:hover, :focus-within) .guideline-demo_comment-card {
-  clip-path: inset(0 0 0 0 round 1.25rem 1.25rem 1.25rem 0);
+  clip-path: inset(0 0 0 0 round 1rem 1rem 1rem 0);
 }
 
 .guideline-demo_comment:is(:hover, :focus-within) .guideline-demo_comment-avatar {
-  top: 1.25rem;
-  left: 1.25rem;
+  top: 0.75rem;
+  left: 0.75rem;
 }
 
 .guideline-demo_comment:is(:hover, :focus-within) .guideline-demo_comment-body {
