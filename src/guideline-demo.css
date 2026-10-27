@@ -76,7 +76,18 @@
    tabindex="0", so keyboard users can Tab to it and touch users can tap it).
    The full quote is visually hidden in the Designer, not display:none, so
    screen readers always get the whole quote; the short one is aria-hidden.
-   Webflow cannot style a child on its parent's :hover, so this lives here. */
+   Webflow cannot style a child on its parent's :hover, so this lives here.
+
+   The quote is capped at three lines in the Designer, with a max-height
+   transition on Katie's cubic-bezier(0.625, 0.05, 0, 1). Lifting the cap
+   reveals the rest of the full quote downward. Collapsing snaps, because the
+   short quote is only three lines: the open animates, the close does not.
+   The open height is exactly the full quote's six lines (6 x 1.45em). A taller
+   cap would stop the card early and cut off the tail of the curve. */
+.guideline-demo_testimonial:is(:hover, :focus) .guideline-demo_testimonial-quote {
+  max-height: 8.7em;
+}
+
 .guideline-demo_testimonial:is(:hover, :focus) .guideline-demo_testimonial-short {
   display: none;
 }
