@@ -237,6 +237,41 @@
   transform: none;
 }
 
+/* Phones: the pin stays 32px but its tap target is 44px (Katie's mobile
+   minimum). The card carries 6px of padding on the pin's left and bottom
+   (Designer, small breakpoint) and clips to a 44px square, which is the hit
+   area; the panel inside clips to the 32px pin, which is what shows. The
+   outline would ring the larger hit box off-centre, so the focus ring becomes
+   a 2px border/focus edge drawn by the same drop-shadow that follows the
+   shape. */
+@media (max-width: 767px) {
+  .guideline-demo_comment-card {
+    clip-path: inset(calc(100% - 2.75rem) calc(100% - 2.75rem) 0 0);
+  }
+
+  .guideline-demo_comment-panel {
+    clip-path: inset(calc(100% - 2rem) calc(100% - 2rem) 0 0 round 1rem 1rem 1rem 0);
+  }
+
+  .guideline-demo_comment:is(:hover, :focus-within) .guideline-demo_comment-panel {
+    clip-path: inset(0 0 0 0 round 1rem 1rem 1rem 0);
+  }
+
+  .guideline-demo_comment.is-after .guideline-demo_comment-panel {
+    transition: clip-path var(--_motion---duration--lg) var(--_motion---ease--out);
+  }
+
+  .guideline-demo_comment:has(:focus-visible) {
+    outline: none;
+    filter:
+      drop-shadow(2px 0 0 var(--border--focus, #05060f))
+      drop-shadow(-2px 0 0 var(--border--focus, #05060f))
+      drop-shadow(0 2px 0 var(--border--focus, #05060f))
+      drop-shadow(0 -2px 0 var(--border--focus, #05060f))
+      drop-shadow(0 4px 12px var(--shadow--default, rgba(13, 24, 38, 0.08)));
+  }
+}
+
 /* "Respect people's reduced motion setting": the Select menu and its chevron.
    guideline-demo.js puts data-motion="default" | "reduce" on the component and
    starts it on "reduce" when the OS asks for reduced motion. Default motion
