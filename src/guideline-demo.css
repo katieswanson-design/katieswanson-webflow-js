@@ -71,6 +71,26 @@
     0 4px 6px -2px rgba(31, 51, 78, 0.12);
 }
 
+/* "Use typographic punctuation": the testimonial card shows a short quote and
+   expands to the full one on hover, or when the card has focus (it carries
+   tabindex="0", so keyboard users can Tab to it and touch users can tap it).
+   The full quote is visually hidden in the Designer, not display:none, so
+   screen readers always get the whole quote; the short one is aria-hidden.
+   Webflow cannot style a child on its parent's :hover, so this lives here. */
+.guideline-demo_testimonial:is(:hover, :focus) .guideline-demo_testimonial-short {
+  display: none;
+}
+
+.guideline-demo_testimonial:is(:hover, :focus) .guideline-demo_testimonial-full {
+  position: static;
+  width: auto;
+  height: auto;
+  margin-top: 0;
+  overflow: visible;
+  white-space: normal;
+  clip: auto;
+}
+
 /* "Respect people's reduced motion setting": the Select menu and its chevron.
    guideline-demo.js puts data-motion="default" | "reduce" on the component and
    starts it on "reduce" when the OS asks for reduced motion. Default motion
