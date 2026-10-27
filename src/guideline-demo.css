@@ -29,46 +29,55 @@
   .guideline-demo_spinner { animation-duration: 2.4s; }
 }
 
-/* "Layer shadows for natural depth": the after state is the high elevation
-   level, on the shadow tokens so it follows dark mode. Webflow turns var()
-   inside a class box-shadow into a single colour binding, so it lives here.
-   The Designer combo keeps the light values as a fallback; this rule wins
-   because it loads after Webflow's CSS at the same specificity.
+/* "Complex characters cast better shadows": three square tiles at small,
+   medium and large elevation. Webflow turns var() inside a class box-shadow
+   into a single colour binding, so both states live here.
 
-   The before state is the same depth as a single flat layer.
-
-   The card's 1px edge is an inset shadow rather than a border, so it sits
-   inside the card and stacks with the elevation layers. It is repeated in the
-   after state because a box-shadow declaration replaces the whole list. */
-.guideline-demo_elevation-card {
+   Basic is one layer per tile, matched to its level's reach and token
+   strength, so the switch shows layering rather than a change in depth. Layered is the
+   elevation.css recipe for the tile's data-elevation level (low, medium,
+   highest), repeated here rather than inherited: each tile's 1px edge is an
+   inset shadow (border/subtle), and a box-shadow declaration replaces the
+   whole list, so the attribute rule alone would drop the edge. Keep these in
+   step with elevation.css. The data-elevation attribute still supplies the
+   eased box-shadow transition between the two states. */
+.guideline-demo_elevation-tile[data-shadow="small"] {
   box-shadow:
     inset 0 0 0 1px var(--border--subtle, #e3e5e8),
-    0 12px 24px var(--shadow--strong, oklch(20.6% 0.032 254.945 / 0.16));
+    0 1px 4px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08));
 }
 
-.guideline-demo_elevation-card.is-after {
+.guideline-demo_elevation-tile[data-shadow="medium"] {
   box-shadow:
     inset 0 0 0 1px var(--border--subtle, #e3e5e8),
-    0 10px 15px -3px var(--shadow--strong, oklch(20.6% 0.032 254.945 / 0.16)),
-    0 4px 6px -2px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08));
+    0 4px 10px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08));
 }
 
-/* "Tint borders, shadows and text toward the surface": the card's edge is an
-   inset shadow too, neutral before and navy-tinted after. The drop shadows
-   match the Designer combo values, repeated because a box-shadow declaration
-   replaces the whole list. */
-.guideline-demo_hue-card {
+.guideline-demo_elevation-tile[data-shadow="large"] {
   box-shadow:
-    inset 0 0 0 1px var(--_primitives-color---neutral--400, oklch(76.6% 0.011 261.784)),
-    0 10px 15px -3px rgba(0, 0, 0, 0.16),
-    0 4px 6px -2px rgba(0, 0, 0, 0.08);
+    inset 0 0 0 1px var(--border--subtle, #e3e5e8),
+    0 18px 30px var(--shadow--strong, oklch(20.6% 0.032 254.945 / 0.16));
 }
 
-.guideline-demo_hue-card.is-after {
+.guideline-demo_elevation-tile.is-after[data-shadow="small"] {
   box-shadow:
-    inset 0 0 0 1px var(--_primitives-color---brand--navy--300, oklch(76% 0.051 255.933)),
-    0 10px 15px -3px rgba(31, 51, 78, 0.24),
-    0 4px 6px -2px rgba(31, 51, 78, 0.12);
+    inset 0 0 0 1px var(--border--subtle, #e3e5e8),
+    0 1px 3px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08)),
+    0 1px 2px var(--shadow--subtle, oklch(20.6% 0.032 254.945 / 0.04));
+}
+
+.guideline-demo_elevation-tile.is-after[data-shadow="medium"] {
+  box-shadow:
+    inset 0 0 0 1px var(--border--subtle, #e3e5e8),
+    0 4px 6px -1px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08)),
+    0 2px 4px -1px var(--shadow--subtle, oklch(20.6% 0.032 254.945 / 0.04));
+}
+
+.guideline-demo_elevation-tile.is-after[data-shadow="large"] {
+  box-shadow:
+    inset 0 0 0 1px var(--border--subtle, #e3e5e8),
+    0 20px 25px -5px var(--shadow--strong, oklch(20.6% 0.032 254.945 / 0.16)),
+    0 10px 10px -5px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08));
 }
 
 /* "Use typographic punctuation": the testimonial card shows a short quote and
