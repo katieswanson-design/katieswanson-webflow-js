@@ -74,32 +74,41 @@
 /* "Use typographic punctuation": the testimonial card shows a short quote and
    expands to the full one on hover, or when the card has focus (it carries
    tabindex="0", so keyboard users can Tab to it and touch users can tap it).
-   The full quote is visually hidden in the Designer, not display:none, so
-   screen readers always get the whole quote; the short one is aria-hidden.
    Webflow cannot style a child on its parent's :hover, so this lives here.
 
-   The quote is capped at three lines in the Designer, with a max-height
-   transition on Katie's cubic-bezier(0.625, 0.05, 0, 1). Lifting the cap
-   reveals the rest of the full quote downward. Collapsing snaps, because the
-   short quote is only three lines: the open animates, the close does not.
-   The open height is exactly the full quote's six lines (6 x 1.45em). A taller
-   cap would stop the card early and cut off the tail of the curve. */
+   In the Designer the quote is capped at three lines, with a max-height
+   transition on Katie's cubic-bezier(0.625, 0.05, 0, 1). The full quote always
+   sits in the flow at opacity 0, so screen readers get all of it; the short
+   one (aria-hidden) is laid over its first three lines.
+
+   Open: the swap is instant and the cap lifts to exactly the full quote's six
+   lines (6 x 1.45em). A taller cap would stop the card early and cut off the
+   tail of the curve.
+   Close: the full quote stays painted while the cap eases back to three lines,
+   then the two swap back once the collapse lands. That wait is the Designer's
+   transition-delay (duration/xl) on both spans; the open zeroes it. */
 .guideline-demo_testimonial:is(:hover, :focus) .guideline-demo_testimonial-quote {
   max-height: 8.7em;
 }
 
 .guideline-demo_testimonial:is(:hover, :focus) .guideline-demo_testimonial-short {
-  display: none;
+  opacity: 0;
+  transition-delay: 0s;
 }
 
 .guideline-demo_testimonial:is(:hover, :focus) .guideline-demo_testimonial-full {
-  position: static;
-  width: auto;
-  height: auto;
-  margin-top: 0;
-  overflow: visible;
-  white-space: normal;
-  clip: auto;
+  opacity: 1;
+  transition-delay: 0s;
+}
+
+/* reset.css shortens durations for reduced motion but keeps delays, which
+   would leave the clipped full quote showing until the swap. Nothing animates
+   here, so swap back at once. */
+@media (prefers-reduced-motion: reduce) {
+  .guideline-demo_testimonial-short,
+  .guideline-demo_testimonial-full {
+    transition-delay: 0s;
+  }
 }
 
 /* "Respect people's reduced motion setting": the Select menu and its chevron.
