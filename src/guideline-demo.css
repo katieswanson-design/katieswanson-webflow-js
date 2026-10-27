@@ -142,6 +142,101 @@
   }
 }
 
+/* "Make entrance animations natural and responsive": a comment pin that opens
+   into the comment on hover or keyboard focus. Webflow cannot style children
+   on a parent's :hover, so the states live here; layout, type and colour are
+   Designer classes.
+
+   The card is always laid out at full size. clip-path cuts it down to the
+   pin (its bottom-left 3rem, square corner on the anchor) and opens to the
+   whole card; clip-path also clips hit-testing, so only the pin is hoverable
+   at rest. The avatar's top is a percentage of the card, so it rides from the
+   pin to the corner without knowing the card's height.
+
+   The wrapper draws the edge and shadow with drop-shadow, which follows the
+   clipped shape (a box-shadow on the card would be clipped away). The four
+   1px layers are the border/subtle edge; the card shares its surface with the
+   frame in dark mode, so without them it disappears.
+
+   Raw (no .is-after): the card swaps to full size at once and its panel pops
+   from scale(0) at the pin corner on ease-in, no fade. The panel animates,
+   not the card, so the hover area never shrinks out from under the pointer.
+   Polished (.is-after): the clip, the avatar and the text all ease out
+   together; the text fades in from scale(0.95). */
+.guideline-demo_comment {
+  filter:
+    drop-shadow(1px 0 0 var(--border--subtle, #e1e5ea))
+    drop-shadow(-1px 0 0 var(--border--subtle, #e1e5ea))
+    drop-shadow(0 1px 0 var(--border--subtle, #e1e5ea))
+    drop-shadow(0 -1px 0 var(--border--subtle, #e1e5ea))
+    drop-shadow(0 4px 12px var(--shadow--default, rgba(13, 24, 38, 0.08)))
+    drop-shadow(0 1px 2px var(--shadow--subtle, rgba(13, 24, 38, 0.04)));
+}
+
+.guideline-demo_comment-card {
+  clip-path: inset(calc(100% - 3rem) calc(100% - 3rem) 0 0 round 1.5rem 1.5rem 1.5rem 0);
+}
+
+.guideline-demo_comment-avatar {
+  top: calc(100% - 2.75rem);
+  left: 0.25rem;
+}
+
+.guideline-demo_comment-body {
+  opacity: 0;
+  transform-origin: 0 0;
+}
+
+.guideline-demo_comment:is(:hover, :focus-within) .guideline-demo_comment-card {
+  clip-path: inset(0 0 0 0 round 1.25rem 1.25rem 1.25rem 0);
+}
+
+.guideline-demo_comment:is(:hover, :focus-within) .guideline-demo_comment-avatar {
+  top: 1.25rem;
+  left: 1.25rem;
+}
+
+.guideline-demo_comment:is(:hover, :focus-within) .guideline-demo_comment-body {
+  opacity: 1;
+}
+
+/* The ring goes on the wrapper: an outline on the card would be clipped. */
+.guideline-demo_comment:has(:focus-visible) {
+  outline: 2px solid var(--border--focus, #05060f);
+  outline-offset: 2px;
+}
+
+@keyframes guideline-demo-pop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+.guideline-demo_comment:not(.is-after):is(:hover, :focus-within) .guideline-demo_comment-panel {
+  transform-origin: 0 100%;
+  animation: guideline-demo-pop var(--_motion---duration--lg) var(--_motion---ease--in) both;
+}
+
+.guideline-demo_comment.is-after .guideline-demo_comment-card {
+  transition: clip-path var(--_motion---duration--lg) var(--_motion---ease--out);
+}
+
+.guideline-demo_comment.is-after .guideline-demo_comment-avatar {
+  transition-property: top, left;
+  transition-duration: var(--_motion---duration--lg);
+  transition-timing-function: var(--_motion---ease--out);
+}
+
+.guideline-demo_comment.is-after .guideline-demo_comment-body {
+  transform: scale(0.95);
+  transition-property: opacity, transform;
+  transition-duration: var(--_motion---duration--lg);
+  transition-timing-function: var(--_motion---ease--out);
+}
+
+.guideline-demo_comment.is-after:is(:hover, :focus-within) .guideline-demo_comment-body {
+  transform: none;
+}
+
 /* "Respect people's reduced motion setting": the Select menu and its chevron.
    guideline-demo.js puts data-motion="default" | "reduce" on the component and
    starts it on "reduce" when the OS asks for reduced motion. Default motion
