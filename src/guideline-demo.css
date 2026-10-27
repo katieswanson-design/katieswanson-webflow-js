@@ -80,6 +80,15 @@
     0 10px 10px -5px var(--shadow--default, oklch(20.6% 0.032 254.945 / 0.08));
 }
 
+/* "Match border radius on nested elements": the outer and inner squares draw
+   their 1px edge as an inset shadow on border/subtle, so it follows dark mode.
+   Webflow turns var() inside a class box-shadow into a colour binding, so it
+   lives here. The radii, arcs and badges are Designer classes. */
+.guideline-demo_nest,
+.guideline-demo_nest-inner {
+  box-shadow: inset 0 0 0 1px var(--border--subtle, #e1e5ea);
+}
+
 /* "Use typographic punctuation": the testimonial card shows a short quote and
    expands to the full one on hover, or when the card has focus (it carries
    tabindex="0", so keyboard users can Tab to it and touch users can tap it).
