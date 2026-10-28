@@ -992,12 +992,16 @@
         reel.style.transform = 'translateY(' + (p < 0.78 ? 0 : -line) + 'px)';
         return;
       }
+      // The headline leaves first. As its last word nears the edge the first
+      // image zooms out and edges up to 62% (still clear of the type), then
+      // rises the rest of the way once the headline is gone.
       var travel = head.offsetWidth + head.offsetLeft;
       head.style.opacity = '';
       head.style.transform = 'translateX(' + (-travel * seg(p, 0, 0.3)) + 'px)';
       first.style.opacity = '';
-      first.style.transform = 'translateY(' + mix(75, 0, ease(seg(p, 0.12, 0.4))) + '%)';
-      firstImg.style.transform = 'scale(' + mix(1.25, 1, ease(seg(p, 0.12, 0.26))) + ')';
+      var lift = p < 0.26 ? mix(75, 62, ease(seg(p, 0.16, 0.26))) : mix(62, 0, ease(seg(p, 0.28, 0.42)));
+      first.style.transform = 'translateY(' + lift + '%)';
+      firstImg.style.transform = 'scale(' + mix(1.25, 1, ease(seg(p, 0.16, 0.26))) + ')';
       rest.forEach(function (el, i) {
         el.style.opacity = '';
         el.style.transform = 'translateX(' + mix(100, 0, ease(seg(p, SCROLLY_SHOTS[i][0], SCROLLY_SHOTS[i][1]))) + '%)';
