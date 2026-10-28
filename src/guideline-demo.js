@@ -120,6 +120,19 @@
  *       button[data-pb-move="up" | "down"]    the alternative, after state only
  *   [data-pb-reorder-status]                  role="status"; announces moves
  *
+ * Validate ("Float labels, never drop them")
+ *   input[data-pb-validate="Message"]         real input with a pattern; checked
+ *                                             on blur, then on every keystroke
+ *                                             once it has failed (reward early,
+ *                                             punish late). Gets aria-invalid
+ *   [data-pb-error-for="input-id"]            gets the message, or is emptied
+ *                                             when the value is fine. The one
+ *                                             beside the field is the
+ *                                             aria-live="polite" region the input
+ *                                             points to with aria-describedby;
+ *                                             the far one is aria-hidden and only
+ *                                             shows in the before state
+ *
  * Reduced motion ("Respect people's reduced motion setting"), on the component:
  *   data-pb-follows="reduced-motion"
  *   The switch starts in the after state when the OS asks for reduced motion,
@@ -910,6 +923,26 @@
     };
   }
 
+  /* ---- Validate ------------------------------------------------------ */
+
+  function initValidate(root) {
+    qa(root, 'input[data-pb-validate]').forEach(function (input) {
+      var errors = qa(root, '[data-pb-error-for="' + input.id + '"]');
+      var message = input.getAttribute('data-pb-validate');
+      var failed = false;
+
+      function check() {
+        failed = input.value !== '' && !input.checkValidity();
+        input.setAttribute('aria-invalid', String(failed));
+        errors.forEach(function (el) { el.textContent = failed ? message : ''; });
+      }
+
+      input.addEventListener('blur', check);
+      input.addEventListener('input', function () { if (failed) check(); });
+      check();
+    });
+  }
+
   /* ---- Example ------------------------------------------------------- */
 
   function init(root) {
@@ -931,6 +964,7 @@
       initReorder(root, isAfter)
     ].forEach(function (r) { if (r) resets.push(r); });
     initTabs(root);
+    initValidate(root);
     if (root.getAttribute('data-pb') === 'announce') initAnnounce(root);
 
     function setMode(a, user) {

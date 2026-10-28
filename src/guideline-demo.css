@@ -272,6 +272,69 @@
   }
 }
 
+/* "Float labels, never drop them": two real inputs. Each field is
+   input + label + hint, in that order, so the label and hint can follow the
+   input's focus and empty state (Webflow has no sibling selectors). The input
+   carries placeholder=" " only so :placeholder-shown means "empty"; the
+   visible text is always the real <label>.
+
+   Before (placeholder only): the label sits in the field like a placeholder
+   and disappears once there is a value, and the error shows away from the
+   field. After (floating label): the label rises to 12px above the value on
+   focus or once filled, the example pattern appears only after it has risen,
+   and the error sits under its field. The error beside the field is the live
+   region in both states, so screen readers hear it either way; before, it is
+   only visually hidden. */
+.guideline-demo_float-label {
+  transform-origin: 0 0;
+  transition-property: transform, opacity;
+  transition-duration: var(--_motion---duration--sm);
+  transition-timing-function: var(--_motion---ease--out);
+}
+
+.guideline-demo_float-hint {
+  opacity: 0;
+  transition: opacity var(--_motion---duration--sm) var(--_motion---ease--out);
+}
+
+[data-pb-mode="before"] .guideline-demo_float-input:not(:placeholder-shown) + .guideline-demo_float-label {
+  opacity: 0;
+}
+
+[data-pb-mode="after"] .guideline-demo_float-input {
+  padding-top: 1.5rem;
+  padding-bottom: 0.5rem;
+}
+
+[data-pb-mode="after"] .guideline-demo_float-input:is(:focus, :not(:placeholder-shown)) + .guideline-demo_float-label {
+  transform: translateY(-0.5rem) scale(0.75);
+}
+
+[data-pb-mode="after"] .guideline-demo_float-input:focus:placeholder-shown ~ .guideline-demo_float-hint {
+  opacity: 1;
+}
+
+[data-pb-mode="after"] .guideline-demo_float-input[aria-invalid="true"] {
+  border-color: var(--status-error--border, #e7000b);
+}
+
+[data-pb-mode="before"] .guideline-demo_float-error:not(.is-far) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+[data-pb-mode="after"] .guideline-demo_float-error.is-far {
+  display: none;
+}
+
+.guideline-demo_float-error:empty {
+  margin: 0;
+}
+
 /* "Respect people's reduced motion setting": the Select menu and its chevron.
    guideline-demo.js puts data-motion="default" | "reduce" on the component and
    starts it on "reduce" when the OS asks for reduced motion. Default motion
