@@ -345,6 +345,28 @@
   margin: 0;
 }
 
+/* "Disrupt the flow with a plot twist": guideline-demo.js moves the scenes
+   with inline transforms as the page scrolls. With reduced motion nothing
+   slides; the scenes fade instead, so the headline has to fit the stage:
+   it wraps and sits in the middle. translate, not transform, so it does not
+   fight the script. */
+@media (prefers-reduced-motion: reduce) {
+  .guideline-demo_scrolly-headline {
+    right: 4rem;
+    top: 50%;
+    translate: 0 -50%;
+    font-size: 3rem;
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (max-width: 767px) {
+  .guideline-demo_scrolly-headline {
+    right: 1.5rem;
+    font-size: 2rem;
+  }
+}
+
 /* "Respect people's reduced motion setting": the Select menu and its chevron.
    guideline-demo.js puts data-motion="default" | "reduce" on the component and
    starts it on "reduce" when the OS asks for reduced motion. Default motion

@@ -135,6 +135,22 @@
  *   input[data-pb-demo-focus]                 drawn as focused until either field
  *                                             gets real focus, then removed
  *
+ * Scrolly ("Disrupt the flow with a plot twist"), data-pb="scrolly", no switch
+ *   [data-pb-scrolly]                         tall track; its first child is the
+ *                                             sticky frame that stays pinned
+ *     [data-pb-headline]                      slides left off the stage
+ *     [data-pb-shot] (first)                  rises from the bottom quarter and
+ *       img                                   zooms out from 1.25 to fill it
+ *     [data-pb-shot] (the rest)               slide in from the right, in turn
+ *     [data-pb-copy] > [data-pb-reel]         the first line rises in, then the
+ *                                             second pushes it out
+ *   Progress is the share of the pinned scroll the page has travelled. The
+ *   last SCROLLY_BUFFER of it changes nothing, so the final scene holds
+ *   before the page moves on. Shown progress eases toward the real one
+ *   (SCROLLY_EASE per frame), which smooths wheel steps. With reduced motion
+ *   nothing moves: each scene fades in at the same point instead, and the
+ *   headline wraps (guideline-demo.css).
+ *
  * Reduced motion ("Respect people's reduced motion setting"), on the component:
  *   data-pb-follows="reduced-motion"
  *   The switch starts in the after state when the OS asks for reduced motion,
@@ -925,6 +941,92 @@
     };
   }
 
+  /* ---- Scrolly ------------------------------------------------------- */
+
+  var SCROLLY_BUFFER = 0.18;
+  var SCROLLY_EASE = 0.14;
+  // When each shot after the first slides in, as shares of the progress.
+  var SCROLLY_SHOTS = [[0.42, 0.54], [0.56, 0.68], [0.70, 0.82], [0.84, 0.96]];
+
+  function initScrolly(root) {
+    var track = q(root, '[data-pb-scrolly]');
+    if (!track) return;
+    var frame = track.firstElementChild;
+    var head = q(track, '[data-pb-headline]');
+    var shots = qa(track, '[data-pb-shot]');
+    var first = shots[0];
+    var firstImg = q(first, 'img');
+    var copy = q(track, '[data-pb-copy]');
+    var reel = q(track, '[data-pb-reel]');
+    var target = 0;
+    var shown = -1;
+    var raf = 0;
+
+    function clamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+    function seg(p, a, b) { return clamp((p - a) / (b - a)); }
+    function ease(t) { return t * t * (3 - 2 * t); }
+    function mix(a, b, t) { return a + (b - a) * t; }
+
+    function progress() {
+      var top = parseFloat(getComputedStyle(frame).top) || 0;
+      var distance = track.offsetHeight - frame.offsetHeight;
+      if (distance <= 0) return 1;
+      var travelled = clamp((top - track.getBoundingClientRect().top) / distance);
+      return clamp(travelled / (1 - SCROLLY_BUFFER));
+    }
+
+    function render(p) {
+      var line = copy.clientHeight;
+      var rest = shots.slice(1);
+      if (reducedMotion()) {
+        head.style.transform = '';
+        head.style.opacity = String(1 - seg(p, 0.15, 0.28));
+        first.style.transform = 'none';
+        firstImg.style.transform = 'none';
+        first.style.opacity = String(seg(p, 0.15, 0.35));
+        rest.forEach(function (el, i) {
+          el.style.transform = 'none';
+          el.style.opacity = String(seg(p, SCROLLY_SHOTS[i][0], SCROLLY_SHOTS[i][1]));
+        });
+        copy.style.opacity = String(seg(p, 0.45, 0.56));
+        reel.style.transform = 'translateY(' + (p < 0.78 ? 0 : -line) + 'px)';
+        return;
+      }
+      var travel = head.offsetWidth + head.offsetLeft;
+      head.style.opacity = '';
+      head.style.transform = 'translateX(' + (-travel * seg(p, 0, 0.3)) + 'px)';
+      first.style.opacity = '';
+      first.style.transform = 'translateY(' + mix(75, 0, ease(seg(p, 0.12, 0.4))) + '%)';
+      firstImg.style.transform = 'scale(' + mix(1.25, 1, ease(seg(p, 0.12, 0.26))) + ')';
+      rest.forEach(function (el, i) {
+        el.style.opacity = '';
+        el.style.transform = 'translateX(' + mix(100, 0, ease(seg(p, SCROLLY_SHOTS[i][0], SCROLLY_SHOTS[i][1]))) + '%)';
+      });
+      copy.style.opacity = '';
+      var rise = ease(seg(p, 0.45, 0.56));
+      var push = ease(seg(p, 0.72, 0.84));
+      reel.style.transform = 'translateY(' + ((1 - rise - push) * line) + 'px)';
+    }
+
+    function tick() {
+      raf = 0;
+      if (shown < 0 || reducedMotion()) shown = target;
+      else shown += (target - shown) * SCROLLY_EASE;
+      if (Math.abs(target - shown) < 0.0005) shown = target;
+      render(shown);
+      if (shown !== target) raf = requestAnimationFrame(tick);
+    }
+
+    function update() {
+      target = progress();
+      if (!raf) raf = requestAnimationFrame(tick);
+    }
+
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  }
+
   /* ---- Validate ------------------------------------------------------ */
 
   function initValidate(root) {
@@ -978,6 +1080,7 @@
     ].forEach(function (r) { if (r) resets.push(r); });
     initTabs(root);
     initValidate(root);
+    if (root.getAttribute('data-pb') === 'scrolly') initScrolly(root);
     if (root.getAttribute('data-pb') === 'announce') initAnnounce(root);
 
     function setMode(a, user) {
