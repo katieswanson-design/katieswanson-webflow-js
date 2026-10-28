@@ -284,7 +284,17 @@
    focus or once filled, the example pattern appears only after it has risen,
    and the error sits under its field. The error beside the field is the live
    region in both states, so screen readers hear it either way; before, it is
-   only visually hidden. */
+   only visually hidden.
+
+   An input with data-pb-demo-focus is drawn as if focused (ring, risen label,
+   hint) so the example opens on its active state without taking real focus,
+   which would scroll the page here on load. guideline-demo.js removes the
+   attribute the first time either field gets real focus. */
+.guideline-demo_float-input[data-pb-demo-focus] {
+  outline: 2px solid var(--border--focus, #05060f);
+  outline-offset: 2px;
+}
+
 .guideline-demo_float-label {
   transform-origin: 0 0;
   transition-property: transform, opacity;
@@ -306,11 +316,11 @@
   padding-bottom: 0.5rem;
 }
 
-[data-pb-mode="after"] .guideline-demo_float-input:is(:focus, :not(:placeholder-shown)) + .guideline-demo_float-label {
+[data-pb-mode="after"] .guideline-demo_float-input:is(:focus, [data-pb-demo-focus], :not(:placeholder-shown)) + .guideline-demo_float-label {
   transform: translateY(-0.5rem) scale(0.75);
 }
 
-[data-pb-mode="after"] .guideline-demo_float-input:focus:placeholder-shown ~ .guideline-demo_float-hint {
+[data-pb-mode="after"] .guideline-demo_float-input:is(:focus, [data-pb-demo-focus]):placeholder-shown ~ .guideline-demo_float-hint {
   opacity: 1;
 }
 

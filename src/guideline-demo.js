@@ -132,6 +132,8 @@
  *                                             points to with aria-describedby;
  *                                             the far one is aria-hidden and only
  *                                             shows in the before state
+ *   input[data-pb-demo-focus]                 drawn as focused until either field
+ *                                             gets real focus, then removed
  *
  * Reduced motion ("Respect people's reduced motion setting"), on the component:
  *   data-pb-follows="reduced-motion"
@@ -926,7 +928,18 @@
   /* ---- Validate ------------------------------------------------------ */
 
   function initValidate(root) {
-    qa(root, 'input[data-pb-validate]').forEach(function (input) {
+    var inputs = qa(root, 'input[data-pb-validate]');
+    if (!inputs.length) return;
+
+    // The example opens on its active state without real focus (that would
+    // scroll the page here on load); real focus takes over for good.
+    inputs.forEach(function (input) {
+      input.addEventListener('focus', function () {
+        inputs.forEach(function (i) { i.removeAttribute('data-pb-demo-focus'); });
+      });
+    });
+
+    inputs.forEach(function (input) {
       var errors = qa(root, '[data-pb-error-for="' + input.id + '"]');
       var message = input.getAttribute('data-pb-validate');
       var failed = false;
