@@ -151,6 +151,25 @@
  *   nothing moves: each scene fades in at the same point instead, and the
  *   headline wraps (guideline-demo.css).
  *
+ * Scroll restore ("Pick up where they left off")
+ *   [data-pb-restore]                         the phone screen
+ *     [data-pb-feed] > [data-pb-feed-list]    the scroller; gets focus on a return
+ *                                             to the top
+ *       [data-pb-feed-card]                   opens the detail view
+ *         [data-pb-card-title], [data-pb-card-meta]  copied into the detail
+ *       [data-pb-loading]                     cards and skeleton; get .is-loading
+ *                                             while the list "re-renders"
+ *     [data-pb-detail]                        gets .is-open; inert while closed
+ *       [data-pb-back]                        returns to the feed
+ *   [data-pb-scroll-value], [data-pb-scroll-fill]  live scroll readout
+ *   [data-pb-scroll-note]                     role="status"; what the return did
+ *   [data-pb-step="leave" | "return"]         code lines, get .is-active as they run
+ *   Back always clears the list for RESTORE_LOAD ms, the way content that
+ *   loads after navigation does, so a restore before that point would have
+ *   nothing to scroll. Before: the list comes back at 0. After: the saved
+ *   position is applied once the cards are back, with no smooth scroll, and
+ *   focus returns to the card that was opened.
+ *
  * Reduced motion ("Respect people's reduced motion setting"), on the component:
  *   data-pb-follows="reduced-motion"
  *   The switch starts in the after state when the OS asks for reduced motion,
@@ -187,6 +206,7 @@
   var LOAD_SHOW_DELAY = 200; // ms before a loading indicator appears at all
   var LOAD_MIN_VISIBLE = 400; // ms an indicator stays once it has appeared
   var AIM_GRACE = 300; // ms a submenu waits for the pointer to arrive
+  var RESTORE_LOAD = 600; // ms the feed shows its skeleton after Back
 
   // Tooltip delays come from motion.css so the demo matches the token.
   function tokenMs(name, fallback) {
@@ -1062,6 +1082,107 @@
     });
   }
 
+  /* ---- Scroll restore ------------------------------------------------ */
+
+  function initRestore(root, isAfter) {
+    var screen = q(root, '[data-pb-restore]');
+    if (!screen) return null;
+    var feed = q(screen, '[data-pb-feed]');
+    var list = q(screen, '[data-pb-feed-list]');
+    var detail = q(screen, '[data-pb-detail]');
+    var back = q(screen, '[data-pb-back]');
+    var title = q(screen, '[data-pb-detail-title]');
+    var meta = q(screen, '[data-pb-detail-meta]');
+    var loading = qa(screen, '[data-pb-loading]');
+    var value = q(root, '[data-pb-scroll-value]');
+    var fill = q(root, '[data-pb-scroll-fill]');
+    var note = q(root, '[data-pb-scroll-note]');
+    var steps = qa(root, '[data-pb-step]');
+    var saved = 0;
+    var opened = null;
+    var timer = null;
+
+    function show() {
+      var max = list.scrollHeight - list.clientHeight;
+      var y = Math.round(list.scrollTop);
+      if (value) value.textContent = y + 'px';
+      if (fill) fill.style.transform = 'scaleX(' + (max > 0 ? Math.min(y / max, 1) : 0) + ')';
+    }
+
+    function step(name) {
+      steps.forEach(function (el) {
+        el.classList.toggle('is-active', el.getAttribute('data-pb-step') === name);
+      });
+    }
+
+    function tell(text, tone) {
+      [note, value].forEach(function (el) {
+        if (!el) return;
+        el.classList.toggle('is-error', tone === 'error');
+        el.classList.toggle('is-success', tone === 'success');
+      });
+      if (note) note.textContent = text;
+    }
+
+    function setView(open) {
+      detail.classList.toggle('is-open', open);
+      detail.inert = !open;
+      feed.inert = open;
+    }
+
+    list.addEventListener('scroll', show, { passive: true });
+
+    qa(screen, '[data-pb-feed-card]').forEach(function (card) {
+      card.addEventListener('click', function () {
+        saved = list.scrollTop;
+        opened = card;
+        title.textContent = q(card, '[data-pb-card-title]').textContent;
+        meta.textContent = q(card, '[data-pb-card-meta]').textContent;
+        tell('', null);
+        step(isAfter() ? 'leave' : null);
+        setView(true);
+        back.focus({ preventScroll: true });
+      });
+    });
+
+    back.addEventListener('click', function () {
+      setView(false);
+      // Back is inert now; keep focus in the example while the list loads.
+      list.focus({ preventScroll: true });
+      loading.forEach(function (el) { el.classList.add('is-loading'); });
+      list.scrollTop = 0;
+      show();
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        loading.forEach(function (el) { el.classList.remove('is-loading'); });
+        if (isAfter()) {
+          list.scrollTop = saved;
+          step('return');
+          tell('Back at ' + Math.round(saved) + 'px, right where you left off.', 'success');
+          if (opened) opened.focus({ preventScroll: true });
+        } else {
+          step(null);
+          tell('Back at the top. Your post is gone.', 'error');
+        }
+        show();
+      }, RESTORE_LOAD);
+    });
+
+    show();
+
+    return function reset() {
+      clearTimeout(timer);
+      setView(false);
+      loading.forEach(function (el) { el.classList.remove('is-loading'); });
+      list.scrollTop = 0;
+      saved = 0;
+      opened = null;
+      tell('', null);
+      step(null);
+      show();
+    };
+  }
+
   /* ---- Example ------------------------------------------------------- */
 
   function init(root) {
@@ -1080,7 +1201,8 @@
       root.getAttribute('data-pb') === 'confirm' ? initConfirm(root, isAfter) : null,
       initLoading(root, isAfter),
       initSubmenu(root, isAfter),
-      initReorder(root, isAfter)
+      initReorder(root, isAfter),
+      initRestore(root, isAfter)
     ].forEach(function (r) { if (r) resets.push(r); });
     initTabs(root);
     initValidate(root);

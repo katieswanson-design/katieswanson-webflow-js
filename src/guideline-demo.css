@@ -6,17 +6,6 @@
  * Loaded on /guidelines only, after motion.css.
  */
 
-/* "Design for very long content": two-line clamp. Webflow rejects
-   -webkit-box-orient and drops -webkit-line-clamp, so the after state lives
-   here. */
-.guideline-demo_card-title.is-after {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-}
-
 /* Example 14: the loading spinner. Webflow has no @keyframes. */
 @keyframes guideline-demo-spin {
   to { transform: rotate(360deg); }
@@ -454,3 +443,40 @@
     transition-duration: var(--pb-motion-duration), 0s !important;
   }
 }
+
+/* "Don't let your UI lurk in the shadows": container scroll-state queries.
+   The Designer cannot author @supports or @container, and Webflow flattens
+   var() inside box-shadow, so the bar's shadow and both queries live here.
+   The inbox scroller and its sticky header are both scroll-state containers;
+   the bar and the fade are their descendants, as the queries require.
+
+   Static (before): the bar always has its shadow, the fade is always on.
+   Scroll-aware (after): both start off, and the queries turn them on only
+   while the header is stuck and while there is more to scroll. Browsers
+   without scroll-state queries skip the block and keep the Static look. */
+.guideline-demo_inbox { container: pb-inbox / scroll-state; }
+.guideline-demo_inbox-head { container: pb-inbox-head / scroll-state; }
+.guideline-demo_inbox-bar {
+  box-shadow: 0 1px 0 var(--border--subtle), 0 6px 12px -4px var(--shadow--default);
+  transition: box-shadow var(--_motion---duration--sm) var(--_motion---ease--out);
+}
+
+@supports (container-type: scroll-state) {
+  .guideline-demo_inbox-bar.is-after { box-shadow: 0 1px 0 transparent, 0 6px 12px -4px transparent; }
+  .guideline-demo_inbox-fade.is-after { opacity: 0; }
+
+  @container pb-inbox-head scroll-state(stuck: top) {
+    .guideline-demo_inbox-bar.is-after {
+      box-shadow: 0 1px 0 var(--border--subtle), 0 6px 12px -4px var(--shadow--default);
+    }
+  }
+
+  @container pb-inbox scroll-state(scrollable: bottom) {
+    .guideline-demo_inbox-fade.is-after { opacity: 1; }
+  }
+}
+
+/* "Mind the gap": the Designer drops text-box, so the trim lives here. The
+   outline colour change for the after state stays in the Designer. Browsers
+   without text-box ignore it and keep the default line box. */
+.guideline-demo_trim-text.is-after { text-box: trim-both cap alphabetic; }
