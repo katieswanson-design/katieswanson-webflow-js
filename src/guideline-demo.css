@@ -356,92 +356,42 @@
   }
 }
 
-/* "Respect people's reduced motion setting": the Select menu and its chevron.
-   guideline-demo.js puts data-motion="default" | "reduce" on the component and
-   starts it on "reduce" when the OS asks for reduced motion. Default motion
-   only exists inside prefers-reduced-motion: no-preference, so the switch
-   simulates the setting but the real setting always wins.
+/* "Motion (like spandex) is a privilege, not a right": the quote marquee.
+   The calm version is the baseline and lives in the Designer: one quote,
+   wrapped and centred (5rem, 3.5rem on phones). guideline-demo.js puts
+   data-motion="default" | "reduce" on the component and starts it on
+   "reduce" when the OS asks for reduced motion. The marquee exists only
+   inside prefers-reduced-motion: no-preference, so the switch simulates the
+   setting but the real setting always wins: the media query is the flag.
 
-   Enter and exit are CSS transitions on .is-open, so an interrupted open or
-   close reverses from wherever it is. visibility flips at the end of the
-   exit, which keeps the menu painted until it has finished leaving. */
-[data-pb-follows="reduced-motion"] {
-  --pb-motion-duration: var(--_motion---duration--sm, 200ms);
-  --pb-motion-ease: cubic-bezier(0, 0, 0.2, 1);
-  --pb-motion-offset: 4px;
-  --pb-motion-scale: var(--_motion---scale--enter, 0.95);
-  --pb-motion-blur: var(--_motion---blur--morph, 4px);
-}
-
-/* Reduce motion, and the base for both: opacity only. */
-[data-pb-follows="reduced-motion"] .guideline-demo_select-menu {
-  opacity: 0;
-  visibility: hidden;
-  transform-origin: top center;
-  transition-property: opacity, visibility;
-  transition-duration: var(--pb-motion-duration), 0s;
-  transition-timing-function: var(--pb-motion-ease);
-  transition-delay: 0s, var(--pb-motion-duration);
-}
-
-[data-pb-follows="reduced-motion"] .guideline-demo_select-menu.is-open {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: 0s, 0s;
-}
-
-/* The chevron snaps between its end states; only its colour eases. */
-[data-pb-follows="reduced-motion"] .guideline-demo_chevron {
-  transition-property: color;
-  transition-duration: var(--pb-motion-duration);
-  transition-timing-function: var(--pb-motion-ease);
-}
-
-[data-pb-follows="reduced-motion"] [data-pb-open].is-open .guideline-demo_chevron {
-  rotate: -180deg;
-}
-
-/* The switch in this example uses the same timing as the menu. */
-[data-pb-follows="reduced-motion"] .guideline-demo_switch-thumb,
-[data-pb-follows="reduced-motion"] .guideline-demo_switch-track {
-  transition-duration: var(--pb-motion-duration);
-  transition-timing-function: var(--pb-motion-ease);
+   Two copies of the quote sit in a max-content track that slides by half its
+   width, so the loop has no seam. The copy is aria-hidden; the switch is the
+   control that stops the motion (WCAG 2.2.2). */
+@keyframes guideline-demo-marquee {
+  to { transform: translateX(-50%); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Default motion: drop in from 4px above, grow from 0.95 and unblur.
-     Individual transform properties, so each one transitions on its own. */
-  [data-motion="default"] .guideline-demo_select-menu {
-    translate: 0 calc(var(--pb-motion-offset) * -1);
-    scale: var(--pb-motion-scale);
-    filter: blur(var(--pb-motion-blur));
-    will-change: transform;
-    transition-property: translate, scale, opacity, filter, visibility;
-    transition-duration:
-      var(--pb-motion-duration), var(--pb-motion-duration),
-      var(--pb-motion-duration), var(--pb-motion-duration), 0s;
-    transition-delay: 0s, 0s, 0s, 0s, var(--pb-motion-duration);
+  [data-motion="default"] .guideline-demo_marquee-track {
+    display: flex;
+    width: max-content;
+    animation: guideline-demo-marquee 24s linear infinite;
   }
 
-  [data-motion="default"] .guideline-demo_select-menu.is-open {
-    translate: none;
-    scale: 1;
-    filter: none;
-    transition-delay: 0s, 0s, 0s, 0s, 0s;
+  [data-motion="default"] .guideline-demo_marquee-quote {
+    padding-right: .35em;
+    font-size: 13.75rem;
+    line-height: 1.1;
+    text-align: left;
+    white-space: nowrap;
   }
 
-  [data-motion="default"] .guideline-demo_chevron {
-    transition-property: rotate, color;
-  }
+  [data-motion="default"] .guideline-demo_marquee-copy { display: block; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  /* reset.css collapses every transition for people who reduce motion. A
-     short opacity fade is the reduced-motion variant itself, so the menu
-     keeps it. */
-  [data-pb-follows="reduced-motion"] .guideline-demo_select-menu {
-    transition-duration: var(--pb-motion-duration), 0s !important;
-  }
+@media (prefers-reduced-motion: no-preference) and (max-width: 767px) {
+  [data-motion="default"] .guideline-demo_marquee-quote,
+  [data-motion="default"] .guideline-demo_marquee-copy { font-size: 8rem; }
 }
 
 /* "Don't let your UI lurk in the shadows": container scroll-state queries.

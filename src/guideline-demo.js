@@ -170,12 +170,13 @@
  *   position is applied once the cards are back, with no smooth scroll, and
  *   focus returns to the card that was opened.
  *
- * Reduced motion ("Respect people's reduced motion setting"), on the component:
+ * Reduced motion ("Motion (like spandex) is a privilege, not a right"), on the
+ * component:
  *   data-pb-follows="reduced-motion"
  *   The switch starts in the after state when the OS asks for reduced motion,
  *   and the component gets data-motion="default" | "reduce" for the CSS in
- *   guideline-demo.css to key off. A mode change leaves open panels as they
- *   are, so the next open or close picks up the new motion without a jump.
+ *   guideline-demo.css to key off (the quote marquee). A mode change skips
+ *   the example resets, so nothing else in the example jumps.
  *
  * Page hints (WCAG links in the example headers), outside the mode toggle
  *   a[data-pb-hint]                           trigger, keeps its own aria-label
