@@ -185,6 +185,13 @@
  *   guideline-demo.css to key off (the quote marquee). A mode change skips
  *   the example resets, so nothing else in the example jumps.
  *
+ * One-page progress navigation, outside the mode toggle
+ *   [data-progress-nav-wrapper]               scrolls sideways when narrow
+ *     [data-progress-nav-list]                sized to its links
+ *       [data-progress-nav-indicator]         slides to the active link
+ *       [data-progress-nav-target="#id"]      gets .is--active and aria-current
+ *   [data-progress-nav-anchor]                each section; id matches a target
+ *
  * Page hints (WCAG links in the example headers), outside the mode toggle
  *   a[data-pb-hint]                           trigger, keeps its own aria-label
  *     [data-pb-hint-tooltip]                  aria-hidden; gets .is-visible, and
@@ -1356,6 +1363,74 @@
     setMode(followsMotion && reducedMotion(), false);
   }
 
+  /* ---- One-page progress navigation ---------------------------------- */
+
+  // From Osmo's One-page Progress Navigation. The indicator and its CSS
+  // transition are theirs; an observer replaces ScrollTrigger, which this page
+  // doesn't load, and needs no refresh when an example changes height.
+  function initProgressNav() {
+    var list = q(document, '[data-progress-nav-list]');
+    if (!list) return;
+    var wrapper = q(document, '[data-progress-nav-wrapper]');
+    var indicator = q(list, '[data-progress-nav-indicator]');
+    var links = qa(list, '[data-progress-nav-target]');
+    var active = links[0];
+
+    function updateIndicator(link) {
+      indicator.style.left = (link.offsetLeft / list.offsetWidth) * 100 + '%';
+      indicator.style.top = (link.offsetTop / list.offsetHeight) * 100 + '%';
+      indicator.style.width = (link.offsetWidth / list.offsetWidth) * 100 + '%';
+      indicator.style.height = (link.offsetHeight / list.offsetHeight) * 100 + '%';
+    }
+
+    // Keeps the active link on screen when the nav scrolls sideways, without
+    // scrollIntoView, which would also move the page.
+    function reveal(link) {
+      if (wrapper.scrollWidth <= wrapper.clientWidth) return;
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      wrapper.scrollTo({
+        left: list.offsetLeft + link.offsetLeft - (wrapper.clientWidth - link.offsetWidth) / 2,
+        behavior: reduce ? 'auto' : 'smooth'
+      });
+    }
+
+    function setActive(link) {
+      active = link;
+      links.forEach(function (el) {
+        el.classList.toggle('is--active', el === link);
+        if (el === link) el.setAttribute('aria-current', 'location');
+        else el.removeAttribute('aria-current');
+      });
+      updateIndicator(link);
+      reveal(link);
+    }
+
+    // The first position is placed, not animated in from zero width.
+    indicator.style.transition = 'none';
+    setActive(active);
+    indicator.getBoundingClientRect();
+    indicator.style.transition = '';
+
+    // A zero-height band across the middle of the viewport, matching Osmo's
+    // ScrollTrigger start and end of 50%.
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var link = q(list, '[data-progress-nav-target="#' + entry.target.id + '"]');
+        if (link && link !== active) setActive(link);
+      });
+    }, { rootMargin: '-50% 0px -50% 0px' });
+
+    qa(document, '[data-progress-nav-anchor]').forEach(function (anchor) {
+      observer.observe(anchor);
+    });
+
+    // Link widths shift when the web font lands.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () { updateIndicator(active); });
+    }
+  }
+
   /* ---- Page hints (WCAG links) ---------------------------------------- */
 
   var HINT_GRACE = 120; // ms to cross the gap between a hint's trigger and tooltip
@@ -1425,6 +1500,7 @@
   function boot() {
     qa(document, '[data-pb]').forEach(init);
     initHints();
+    initProgressNav();
   }
 
   if (document.readyState === 'loading') {
