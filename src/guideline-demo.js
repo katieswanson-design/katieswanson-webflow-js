@@ -155,12 +155,18 @@
  *   [data-pb-restore]                         the phone screen
  *     [data-pb-feed] > [data-pb-feed-list]    the scroller; gets focus on a return
  *                                             to the top
- *       [data-pb-feed-card]                   opens the detail view
- *         [data-pb-card-title], [data-pb-card-meta]  copied into the detail
+ *       [data-pb-feed-card]                   CMS item; opens the detail beside it
  *       [data-pb-loading]                     cards and skeleton; get .is-loading
  *                                             while the list "re-renders"
- *     [data-pb-detail]                        gets .is-open; inert while closed
+ *     [data-pb-detail]                        sibling of its card in the CMS item,
+ *                                             moved to the screen on init; gets
+ *                                             .is-open; inert while closed
  *       [data-pb-back]                        returns to the feed
+ *       [data-pb-detail-scroll]               the screen's scroller
+ *       [data-pb-carousel]                    scroll-snap photos
+ *         [data-pb-carousel-track]            the snap scroller, holds the imgs
+ *         [data-pb-carousel-prev], [data-pb-carousel-next]  mouse and keyboard
+ *         [data-pb-dot]                       one per img; gets .is-active
  *   [data-pb-scroll-value], [data-pb-scroll-fill]  live scroll readout
  *   [data-pb-scroll-note]                     role="status"; what the return did
  *   [data-pb-step="leave" | "return"]         code lines, get .is-active as they run
@@ -1085,15 +1091,25 @@
 
   /* ---- Scroll restore ------------------------------------------------ */
 
+  // Each CMS item holds its card and its detail screen. The details move up to
+  // the screen so they cover the whole phone, not just the scrolling list.
   function initRestore(root, isAfter) {
     var screen = q(root, '[data-pb-restore]');
     if (!screen) return null;
     var feed = q(screen, '[data-pb-feed]');
     var list = q(screen, '[data-pb-feed-list]');
-    var detail = q(screen, '[data-pb-detail]');
-    var back = q(screen, '[data-pb-back]');
-    var title = q(screen, '[data-pb-detail-title]');
-    var meta = q(screen, '[data-pb-detail-meta]');
+    var pairs = qa(screen, '[data-pb-feed-card]').map(function (card) {
+      var detail = q(card.parentNode, '[data-pb-detail]');
+      screen.appendChild(detail);
+      detail.inert = true;
+      return {
+        card: card,
+        detail: detail,
+        back: q(detail, '[data-pb-back]'),
+        scroll: q(detail, '[data-pb-detail-scroll]'),
+        carousel: initCarousel(detail)
+      };
+    });
     var loading = qa(screen, '[data-pb-loading]');
     var value = q(root, '[data-pb-scroll-value]');
     var fill = q(root, '[data-pb-scroll-fill]');
@@ -1125,55 +1141,57 @@
       if (note) note.textContent = text;
     }
 
-    function setView(open) {
-      detail.classList.toggle('is-open', open);
-      detail.inert = !open;
-      feed.inert = open;
+    function setView(pair) {
+      pairs.forEach(function (p) {
+        p.detail.classList.toggle('is-open', p === pair);
+        p.detail.inert = p !== pair;
+      });
+      feed.inert = !!pair;
     }
 
     list.addEventListener('scroll', show, { passive: true });
 
-    qa(screen, '[data-pb-feed-card]').forEach(function (card) {
-      card.addEventListener('click', function () {
+    pairs.forEach(function (pair) {
+      pair.card.addEventListener('click', function () {
         saved = list.scrollTop;
-        opened = card;
-        title.textContent = q(card, '[data-pb-card-title]').textContent;
-        meta.textContent = q(card, '[data-pb-card-meta]').textContent;
+        opened = pair;
+        pair.scroll.scrollTop = 0;
+        pair.carousel.go(0, true);
         tell('', null);
         step(isAfter() ? 'leave' : null);
-        setView(true);
-        back.focus({ preventScroll: true });
+        setView(pair);
+        pair.back.focus({ preventScroll: true });
       });
-    });
 
-    back.addEventListener('click', function () {
-      setView(false);
-      // Back is inert now; keep focus in the example while the list loads.
-      list.focus({ preventScroll: true });
-      loading.forEach(function (el) { el.classList.add('is-loading'); });
-      list.scrollTop = 0;
-      show();
-      clearTimeout(timer);
-      timer = setTimeout(function () {
-        loading.forEach(function (el) { el.classList.remove('is-loading'); });
-        if (isAfter()) {
-          list.scrollTop = saved;
-          step('return');
-          tell('Back at ' + Math.round(saved) + 'px, right where you left off.', 'success');
-          if (opened) opened.focus({ preventScroll: true });
-        } else {
-          step(null);
-          tell('Back at the top. Your post is gone.', 'error');
-        }
+      pair.back.addEventListener('click', function () {
+        setView(null);
+        // Back is inert now; keep focus in the example while the list loads.
+        list.focus({ preventScroll: true });
+        loading.forEach(function (el) { el.classList.add('is-loading'); });
+        list.scrollTop = 0;
         show();
-      }, RESTORE_LOAD);
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          loading.forEach(function (el) { el.classList.remove('is-loading'); });
+          if (isAfter()) {
+            list.scrollTop = saved;
+            step('return');
+            tell('Back at ' + Math.round(saved) + 'px, right where you left off.', 'success');
+            if (opened) opened.card.focus({ preventScroll: true });
+          } else {
+            step(null);
+            tell('Back at the top of the list.', 'error');
+          }
+          show();
+        }, RESTORE_LOAD);
+      });
     });
 
     show();
 
     return function reset() {
       clearTimeout(timer);
-      setView(false);
+      setView(null);
       loading.forEach(function (el) { el.classList.remove('is-loading'); });
       list.scrollTop = 0;
       saved = 0;
@@ -1182,6 +1200,46 @@
       step(null);
       show();
     };
+  }
+
+  // Scroll snap does the swiping; these buttons cover mouse and keyboard. An
+  // image left empty in the CMS drops out of the carousel, along with its dot.
+  function initCarousel(root) {
+    var track = q(root, '[data-pb-carousel-track]');
+    var slides = qa(track, 'img');
+    var dots = qa(root, '[data-pb-dot]');
+    var index = 0;
+
+    slides = slides.filter(function (img, i) {
+      if (!img.classList.contains('w-dyn-bind-empty')) return true;
+      img.remove();
+      dots[i].remove();
+      return false;
+    });
+    dots = qa(root, '[data-pb-dot]');
+
+    function mark(i) {
+      index = i;
+      dots.forEach(function (dot, n) { dot.classList.toggle('is-active', n === i); });
+    }
+
+    function go(i, instant) {
+      var next = (i + slides.length) % slides.length;
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      track.scrollTo({ left: track.clientWidth * next, behavior: instant || reduce ? 'auto' : 'smooth' });
+      mark(next);
+    }
+
+    track.addEventListener('scroll', function () {
+      var width = track.clientWidth;
+      if (width) mark(Math.round(track.scrollLeft / width));
+    }, { passive: true });
+
+    q(root, '[data-pb-carousel-prev]').addEventListener('click', function () { go(index - 1); });
+    q(root, '[data-pb-carousel-next]').addEventListener('click', function () { go(index + 1); });
+
+    mark(0);
+    return { go: go };
   }
 
   /* ---- Example ------------------------------------------------------- */

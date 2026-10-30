@@ -430,3 +430,28 @@
    outline colour change for the after state stays in the Designer. Browsers
    without text-box ignore it and keep the default line box. */
 .guideline-demo_trim-text.is-after { text-box: trim-both cap alphabetic; }
+
+/* ---- Pick up where they left off ------------------------------------------
+   Designer holds everything except these: -webkit-line-clamp is rejected as a
+   style property, and the hover and active rules need a descendant or a
+   runtime class. */
+.guideline-demo_feed-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.guideline-demo_carousel-dot.is-active {
+  width: 1rem;
+}
+
+.guideline-demo_carousel-zone:focus-visible .guideline-demo_carousel-icon {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .guideline-demo_carousel-zone:hover .guideline-demo_carousel-icon {
+    opacity: 1;
+  }
+}
