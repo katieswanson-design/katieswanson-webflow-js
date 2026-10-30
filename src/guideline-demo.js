@@ -163,9 +163,10 @@
  *                                             .is-open; inert while closed
  *       [data-pb-back]                        returns to the feed
  *       [data-pb-detail-scroll]               the screen's scroller
- *       [data-pb-carousel]                    scroll-snap photos
+ *       [data-pb-carousel]                    scroll-snap photos; mouse drag gets
+ *                                             .is-dragging
  *         [data-pb-carousel-track]            the snap scroller, holds the imgs
- *         [data-pb-carousel-prev], [data-pb-carousel-next]  mouse and keyboard
+ *         [data-pb-carousel-prev], [data-pb-carousel-next]  side press zones
  *         [data-pb-dot]                       one per img; gets .is-active
  *   [data-pb-scroll-value], [data-pb-scroll-fill]  live scroll readout
  *   [data-pb-scroll-note]                     role="status"; what the return did
@@ -214,6 +215,9 @@
   var LOAD_MIN_VISIBLE = 400; // ms an indicator stays once it has appeared
   var AIM_GRACE = 300; // ms a submenu waits for the pointer to arrive
   var RESTORE_LOAD = 600; // ms the feed shows its skeleton after Back
+  var DRAG_SLOP = 4;      // px a mouse moves before a press counts as a drag
+  var DRAG_TURN = 0.15;   // share of a slide to drag before it changes photo
+  var DRAG_SETTLE = 400;  // ms before snap returns, once the drag has eased home
 
   // Tooltip delays come from motion.css so the demo matches the token.
   function tokenMs(name, fallback) {
@@ -1202,9 +1206,10 @@
     };
   }
 
-  // Scroll snap does the swiping; these buttons cover mouse and keyboard. An
-  // image left empty in the CMS drops out of the carousel, along with its dot.
+  // Scroll snap does the swiping; the side buttons and a mouse drag cover the
+  // rest. An image left empty in the CMS drops out, along with its dot.
   function initCarousel(root) {
+    var carousel = q(root, '[data-pb-carousel]');
     var track = q(root, '[data-pb-carousel-track]');
     var slides = qa(track, 'img');
     var dots = qa(root, '[data-pb-dot]');
@@ -1237,6 +1242,55 @@
 
     q(root, '[data-pb-carousel-prev]').addEventListener('click', function () { go(index - 1); });
     q(root, '[data-pb-carousel-next]').addEventListener('click', function () { go(index + 1); });
+
+    // Mouse only: touch already swipes. Snap is off while dragging or it fights
+    // the pointer, and a drag that started on a side button must not click it.
+    var startX = null;
+    var startLeft = 0;
+    var dragged = false;
+
+    slides.forEach(function (img) { img.draggable = false; });
+
+    carousel.addEventListener('pointerdown', function (e) {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      startX = e.clientX;
+      startLeft = track.scrollLeft;
+      dragged = false;
+    });
+
+    carousel.addEventListener('pointermove', function (e) {
+      if (startX === null) return;
+      var dx = e.clientX - startX;
+      if (!dragged) {
+        if (Math.abs(dx) < DRAG_SLOP) return;
+        dragged = true;
+        carousel.setPointerCapture(e.pointerId);
+        carousel.classList.add('is-dragging');
+        track.style.scrollSnapType = 'none';
+      }
+      track.scrollLeft = startLeft - dx;
+    });
+
+    function release(e) {
+      if (startX === null) return;
+      var dx = e.clientX - startX;
+      var width = track.clientWidth;
+      startX = null;
+      if (!dragged) return;
+      carousel.classList.remove('is-dragging');
+      var shift = Math.abs(dx) > width * DRAG_TURN ? (dx < 0 ? 1 : -1) : 0;
+      go(Math.max(0, Math.min(slides.length - 1, Math.round(startLeft / width) + shift)));
+      setTimeout(function () { track.style.scrollSnapType = ''; }, DRAG_SETTLE);
+    }
+
+    carousel.addEventListener('pointerup', release);
+    carousel.addEventListener('pointercancel', release);
+
+    carousel.addEventListener('click', function (e) {
+      if (!dragged) return;
+      dragged = false;
+      e.stopPropagation();
+    }, true);
 
     mark(0);
     return { go: go };
