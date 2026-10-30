@@ -481,3 +481,33 @@
 .guideline-demo_section:focus {
   outline: none;
 }
+
+/* Prompt shimmer, after transitions.dev's Shimmer text. One layer instead of
+   its ::before copy, which screen readers would read twice. The stops run
+   primary at both ends so each sweep starts and lands on the resting colour,
+   and two 2s sweeps stay under the 5s limit for motion nobody asked to start
+   (WCAG 2.2.2). No band is lighter than text/secondary, so contrast holds on
+   every frame. The Designer can't author keyframes or a text clip. */
+@keyframes guideline-prompt-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .guideline-demo_prompt.is-shimmering {
+    background-image: linear-gradient(
+      90deg,
+      var(--text--primary) 25%,
+      var(--text--secondary) 38%,
+      var(--text--primary) 50%,
+      var(--text--secondary) 62%,
+      var(--text--primary) 75%
+    );
+    background-size: 400% 100%;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: guideline-prompt-shimmer 2s linear 2;
+  }
+}
