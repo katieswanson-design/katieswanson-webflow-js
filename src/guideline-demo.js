@@ -113,9 +113,6 @@
  *   for the open submenu, other items wait AIM_GRACE before taking over.
  *   ArrowRight opens and enters a submenu, ArrowLeft and Escape come back.
  *
- * Prompt (the line under a description that says what to try)
- *   [data-pb-prompt]                          gets .is-shimmering in view
- *
  * Reorder ("Gestures have alternatives")
  *   [data-pb-reorder]                         the list; gets .is-dragging
  *     [data-pb-row="Name"]                    a row; gets .is-dragging
@@ -903,20 +900,6 @@
     };
   }
 
-  /* ---- Prompt shimmer ------------------------------------------------- */
-
-  // The sweep loops while a prompt is in view, so nothing repaints offscreen.
-  function initPrompts() {
-    var prompts = qa(document, '[data-pb-prompt]');
-    if (!prompts.length) return;
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        entry.target.classList.toggle('is-shimmering', entry.isIntersecting);
-      });
-    }, { threshold: 1, rootMargin: '-15% 0px' });
-    prompts.forEach(function (prompt) { io.observe(prompt); });
-  }
-
   /* ---- Reorder ("Gestures have alternatives") ------------------------ */
 
   function initReorder(root, isAfter) {
@@ -1544,7 +1527,6 @@
   function boot() {
     qa(document, '[data-pb]').forEach(init);
     initHints();
-    initPrompts();
     initProgressNav();
   }
 
