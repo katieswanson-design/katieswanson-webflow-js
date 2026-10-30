@@ -453,7 +453,8 @@
 /* ---- One-page progress navigation -----------------------------------------
    From Osmo's resource. The Designer can't style a scrollbar pseudo-element,
    and the slide lives here so the first placement can switch it off from the
-   script. The sections take focus from the nav links and need no ring. */
+   script. The label's blur is a keyframe, which the Designer can't author. The
+   sections take focus from the nav links and need no ring. */
 .guideline-nav_indicator {
   transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -461,6 +462,16 @@
 .guideline-nav_btn {
   transition: color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
     background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes guideline-nav-blur {
+  40% { filter: blur(2px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .guideline-nav_btn.is--active .guideline-nav_text {
+    animation: guideline-nav-blur 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
 
 .guideline-nav_wrapper::-webkit-scrollbar {
