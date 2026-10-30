@@ -433,7 +433,7 @@
 
 /* ---- Pick up where they left off ------------------------------------------
    Designer holds everything except these: -webkit-line-clamp is rejected as a
-   style property, and the rest needs a runtime class or a hover media query. */
+   style property, and the rest needs a runtime class. */
 .guideline-demo_feed-desc {
   display: -webkit-box;
   overflow: hidden;
@@ -448,25 +448,4 @@
 .guideline-demo_carousel.is-dragging,
 .guideline-demo_carousel.is-dragging * {
   cursor: grabbing;
-}
-
-/* Hover sits behind the media query so a tap doesn't leave the edge lit. */
-.guideline-demo_carousel-zone:active,
-.guideline-demo_carousel-zone:focus-visible {
-  background-image: linear-gradient(to right, rgba(13, 24, 38, .32), transparent);
-}
-
-.guideline-demo_carousel-zone.is-next:active,
-.guideline-demo_carousel-zone.is-next:focus-visible {
-  background-image: linear-gradient(to left, rgba(13, 24, 38, .32), transparent);
-}
-
-@media (hover: hover) {
-  .guideline-demo_carousel-zone:hover {
-    background-image: linear-gradient(to right, rgba(13, 24, 38, .32), transparent);
-  }
-
-  .guideline-demo_carousel-zone.is-next:hover {
-    background-image: linear-gradient(to left, rgba(13, 24, 38, .32), transparent);
-  }
 }
