@@ -905,8 +905,7 @@
 
   /* ---- Prompt shimmer ------------------------------------------------- */
 
-  // The sweep is capped in the CSS, so it runs as a prompt comes into view and
-  // waits for the next visit. Dropping the class hands back plain text.
+  // The sweep loops while a prompt is in view, so nothing repaints offscreen.
   function initPrompts() {
     var prompts = qa(document, '[data-pb-prompt]');
     if (!prompts.length) return;
@@ -915,12 +914,7 @@
         entry.target.classList.toggle('is-shimmering', entry.isIntersecting);
       });
     }, { threshold: 1, rootMargin: '-15% 0px' });
-    prompts.forEach(function (prompt) {
-      io.observe(prompt);
-      prompt.addEventListener('animationend', function () {
-        prompt.classList.remove('is-shimmering');
-      });
-    });
+    prompts.forEach(function (prompt) { io.observe(prompt); });
   }
 
   /* ---- Reorder ("Gestures have alternatives") ------------------------ */
