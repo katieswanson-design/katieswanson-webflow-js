@@ -1373,7 +1373,9 @@
     if (!list) return;
     var wrapper = q(document, '[data-progress-nav-wrapper]');
     var indicator = q(list, '[data-progress-nav-indicator]');
+    var nav = list.closest('nav');
     var links = qa(list, '[data-progress-nav-target]');
+    var anchors = qa(document, '[data-progress-nav-anchor]');
     var active = links[0];
 
     function updateIndicator(link) {
@@ -1411,18 +1413,43 @@
     indicator.getBoundingClientRect();
     indicator.style.transition = '';
 
-    // A zero-height band across the middle of the viewport, matching Osmo's
-    // ScrollTrigger start and end of 50%.
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        var link = q(list, '[data-progress-nav-target="#' + entry.target.id + '"]');
-        if (link && link !== active) setActive(link);
+    // The section holding the middle of the viewport, matching Osmo's
+    // ScrollTrigger start and end of 50%. Read from positions rather than the
+    // entry, so a jump past every band (End key, the footer) still lands right.
+    function sync() {
+      var middle = window.innerHeight / 2;
+      var current = anchors[0];
+      anchors.forEach(function (anchor) {
+        if (anchor.getBoundingClientRect().top <= middle) current = anchor;
       });
-    }, { rootMargin: '-50% 0px -50% 0px' });
+      var link = q(list, '[data-progress-nav-target="#' + current.id + '"]');
+      if (link && link !== active) setActive(link);
+    }
 
-    qa(document, '[data-progress-nav-anchor]').forEach(function (anchor) {
-      observer.observe(anchor);
+    var observer = new IntersectionObserver(sync, { rootMargin: '-50% 0px -50% 0px' });
+    anchors.forEach(function (anchor) { observer.observe(anchor); });
+
+    // Webflow's anchor scroll puts the section at the top of the viewport,
+    // behind this nav, so the links scroll themselves. Stopped here, before the
+    // click reaches Webflow's document handler.
+    links.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        var href = link.getAttribute('href');
+        var target = q(document, href);
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({
+          top: target.getBoundingClientRect().top + window.scrollY - nav.offsetHeight,
+          behavior: reduce ? 'auto' : 'smooth'
+        });
+        history.pushState(null, '', href);
+        // Next Tab continues from the section, as a native anchor would.
+        target.setAttribute('tabindex', '-1');
+        target.focus({ preventScroll: true });
+      });
     });
 
     // Link widths shift when the web font lands.
