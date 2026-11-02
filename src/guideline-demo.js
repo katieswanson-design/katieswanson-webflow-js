@@ -191,6 +191,7 @@
  *       [data-progress-nav-indicator]         slides to the active link
  *       [data-progress-nav-target="#id"]      gets .is--active and aria-current
  *   [data-progress-nav-anchor]                each section; id matches a target
+ *   nav (the list's)                          gets .is-hidden until it sticks
  *
  * Page hints (WCAG links in the example headers), outside the mode toggle
  *   a[data-pb-hint]                           trigger, keeps its own aria-label
@@ -1456,6 +1457,17 @@
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(function () { updateIndicator(active); });
     }
+
+    // The nav stays hidden until it sticks. Hidden is the class, not the
+    // default, so the nav still shows if this script never runs. Pinned at the
+    // top, the nav pokes 1px past this root and reads as less than fully
+    // visible; the position test tells that apart from it scrolling in below.
+    var stuck = new IntersectionObserver(function (entries) {
+      var entry = entries[entries.length - 1];
+      var isStuck = entry.intersectionRatio < 1 && entry.boundingClientRect.top < 1;
+      nav.classList.toggle('is-hidden', !isStuck);
+    }, { rootMargin: '-1px 0px 0px 0px', threshold: 1 });
+    stuck.observe(nav);
   }
 
   /* ---- Page hints (WCAG links) ---------------------------------------- */
